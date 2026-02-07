@@ -5,15 +5,6 @@ import { User, Edit2, Save, X, Users, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Post } from '../types';
 
-const MOCK_MY_POSTS: Post[] = [
-  {
-    id: '1',
-    author: { id: 'u1', name: 'Admin User', username: 'admin', avatar: '', role: 'admin' },
-    content: 'My first post on this platform!',
-    likes: 5, comments: 1, shares: 0, timestamp: '1 hour ago', liked: false
-  }
-];
-
 export default function Profile() {
   const { user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -23,7 +14,7 @@ export default function Profile() {
     bio: '',
     avatar: '',
   });
-  const [posts] = useState<Post[]>(MOCK_MY_POSTS);
+  const [posts, setPosts] = useState<Post[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,6 +25,15 @@ export default function Profile() {
         bio: user.bio || '',
         avatar: user.avatar || '',
       });
+      // Fetch user's posts
+      fetch('http://localhost:5000/api/posts')
+        .then(res => res.json())
+        .then((data: Post[]) => {
+          // Filter posts by current user
+          const myPosts = data.filter(p => p.author.id === user.id);
+          setPosts(myPosts);
+        })
+        .catch(err => console.error(err));
     }
   }, [user]);
 
@@ -103,9 +103,9 @@ export default function Profile() {
 
                 <div className="flex items-center space-x-6 text-sm">
                   <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center"><span className="text-blue-600 font-semibold">{posts.length}</span></div><span className="text-gray-600">Posts</span></div>
-                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600" /></div><span className="text-gray-600">120 Followers</span></div>
-                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600" /></div><span className="text-gray-600">50 Following</span></div>
-                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center"><Heart className="w-4 h-4 text-red-600" /></div><span className="text-gray-600">300 Likes</span></div>
+                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600" /></div><span className="text-gray-600">0 Followers</span></div>
+                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600" /></div><span className="text-gray-600">0 Following</span></div>
+                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center"><Heart className="w-4 h-4 text-red-600" /></div><span className="text-gray-600">0 Likes</span></div>
                 </div>
               </div>
             )}
@@ -115,11 +115,15 @@ export default function Profile() {
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-4">My Posts</h2>
           <div className="space-y-6">
-            {posts.map((post) => (
-              <div key={post.id} onClick={() => navigate(`/post/${post.id}`)} className="cursor-pointer">
-                <PostCard post={post} />
-              </div>
-            ))}
+            {posts.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center"><p className="text-gray-500">You haven't posted anything yet.</p></div>
+            ) : (
+              posts.map((post) => (
+                <div key={post.id} onClick={() => navigate(`/post/${post.id}`)} className="cursor-pointer">
+                  <PostCard post={post} />
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

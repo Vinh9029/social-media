@@ -5,18 +5,6 @@ import { formatDistanceToNow } from '../utils/dateUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment } from '../types';
 
-const MOCK_POST: Post = {
-  id: '1',
-  author: { id: 'u1', name: 'Admin User', username: 'admin', avatar: '', role: 'admin' },
-  content: 'Hôm nay trời đẹp quá! Mọi người có kế hoạch gì cho cuối tuần chưa? 🌞',
-  likes: 124, comments: 2, shares: 5, timestamp: new Date().toISOString(), liked: true, title: 'Cuối tuần vui vẻ'
-};
-
-const MOCK_COMMENTS: Comment[] = [
-  { id: 'c1', content: 'Đi chơi thôi!', author: { id: 'u2', name: 'User 2', username: 'user2', avatar: '' } as any, timestamp: new Date().toISOString(), postId: '1' },
-  { id: 'c2', content: 'Ở nhà code dạo :(', author: { id: 'u3', name: 'Dev Guy', username: 'devguy', avatar: '' } as any, timestamp: new Date().toISOString(), postId: '1' }
-];
-
 export default function PostDetail() {
   const { postId } = useParams();
   const navigate = useNavigate();
@@ -24,34 +12,80 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Giả lập fetch data
     if (postId) {
-      setPost(MOCK_POST);
-      setComments(MOCK_COMMENTS);
+      // Fetch Post
+      fetch(`http://localhost:5000/api/posts/${postId}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Post not found');
+          return res.json();
+        })
+        .then(data => setPost(data))
+        .catch(err => console.error(err))
+        .finally(() => setLoading(false));
+
+      // Fetch Comments
+      fetch(`http://localhost:5000/api/posts/${postId}/comments`)
+        .then(res => res.json())
+        .then(data => setComments(data))
+        .catch(err => console.error(err));
     }
   }, [postId]);
 
-  const handleLike = () => {
-    if (post) setPost({ ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 });
+  const handleLike = async () => {
+    if (!post || !user) return;
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${post.id}/like`, {
+        method: 'POST',
+        headers: { 'x-auth-token': token || '' }
+      });
+      if (res.ok) {
+        const likes = await res.json();
+        setPost({ ...post, likes: likes.length, liked: !post.liked });
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleSubmitComment = (e: React.FormEvent) => {
+  const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newComment.trim()) return;
-    const comment: Comment = {
-      id: Date.now().toString(),
-      content: newComment,
-      author: user,
-      timestamp: new Date().toISOString(),
-      postId: postId || ''
-    };
-    setComments([...comments, comment]);
-    setNewComment('');
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token || ''
+        },
+        body: JSON.stringify({ content: newComment })
+      });
+      
+      if (res.ok) {
+        const savedComment = await res.json();
+        // Enrich comment with current user info for display
+        const commentWithUser: Comment = {
+          ...savedComment,
+          id: savedComment._id,
+          author: user,
+          timestamp: new Date().toISOString(),
+          postId: postId || ''
+        };
+        setComments([...comments, commentWithUser]);
+        setNewComment('');
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  if (!post) return <div>Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
+  if (!post) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Post not found</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">

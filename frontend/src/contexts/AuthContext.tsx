@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -12,39 +12,87 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock User Data
-const MOCK_USER: User = {
-  id: 'u1',
-  name: 'Admin User',
-  username: 'admin',
-  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60',
-  role: 'admin',
-  bio: 'Full Stack Developer | UI/UX Enthusiast'
-};
+const API_URL = 'http://localhost:5000/api/auth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Kiểm tra phiên đăng nhập khi tải lại trang
+  useEffect(() => {
+    const checkLoggedIn = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/me`, {
+          headers: { 'x-auth-token': token }
+        });
+        if (res.ok) {
+          const userData = await res.json();
+          setUser(userData);
+        } else {
+          localStorage.removeItem('token');
+        }
+      } catch (error) {
+        console.error('Error checking login:', error);
+        localStorage.removeItem('token');
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkLoggedIn();
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    // Giả lập delay mạng
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setUser(MOCK_USER);
-    setLoading(false);
-    return { error: null };
+    try {
+      const res = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || 'Login failed');
+
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signUp = async (email: string, password: string, username: string, fullName?: string) => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    // Đăng ký xong tự động đăng nhập luôn
-    setUser({ ...MOCK_USER, name: fullName || 'New User', username });
-    setLoading(false);
-    return { error: null };
+    try {
+      const res = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, username, full_name: fullName }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signOut = async () => {
+    localStorage.removeItem('token');
     setUser(null);
   };
 

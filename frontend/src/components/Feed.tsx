@@ -1,42 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image, Send } from 'lucide-react';
 import PostCard from './PostCard';
 import { Post } from '../types';
 
-const MOCK_POSTS: Post[] = [
-  {
-    id: '1',
-    author: {
-      id: 'u1',
-      name: 'Nguyễn Văn A',
-      username: 'nguyenvana',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60',
-    },
-    content: 'Hôm nay trời đẹp quá! Mọi người có kế hoạch gì cho cuối tuần chưa? 🌞',
-    image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop&q=60',
-    likes: 124,
-    comments: 12,
-    shares: 5,
-    timestamp: '2 giờ trước',
-    liked: true,
-  },
-  {
-    id: '2',
-    author: {
-      id: 'u2',
-      name: 'Trần Thị B',
-      username: 'tranthib',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60',
-    },
-    content: 'Vừa hoàn thành xong project mới. Cảm giác thật tuyệt vời! 💻🚀\n#coding #frontend #react',
-    likes: 89,
-    comments: 24,
-    shares: 2,
-    timestamp: '4 giờ trước',
-  },
-];
-
 const Feed = () => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/posts');
+        if (res.ok) {
+          const data = await res.json();
+          setPosts(data);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
   return (
     <div className="max-w-2xl mx-auto w-full py-6 px-4">
       {/* Create Post Input */}
@@ -69,9 +57,15 @@ const Feed = () => {
 
       {/* Posts List */}
       <div className="space-y-4">
-        {MOCK_POSTS.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
+        {loading ? (
+          <div className="text-center py-10 text-gray-500">Đang tải bài viết...</div>
+        ) : posts.length > 0 ? (
+          posts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))
+        ) : (
+          <div className="text-center py-10 text-gray-500">Chưa có bài viết nào.</div>
+        )}
       </div>
     </div>
   );

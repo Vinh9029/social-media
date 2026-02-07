@@ -19,7 +19,7 @@ export default function Login() {
     const { error } = await signIn(email, password);
 
     if (error) {
-      setError(error.message);
+      setError(error.message || 'Failed to login');
       setLoading(false);
     } else {
       navigate('/');

@@ -27,7 +27,7 @@ export default function Register() {
     const { error } = await signUp(email, password, username, fullName);
 
     if (error) {
-      setError(error.message);
+      setError(error.message || 'Registration failed');
       setLoading(false);
     } else {
       setSuccess(true);
