@@ -11,8 +11,14 @@ app.use(express.json());
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/social-app')
-  .then((conn) => console.log(`MongoDB Connected: ${conn.connection.host}`))
-  .catch(err => console.log('MongoDB Connection Error:', err));
+    .then((conn) => console.log(`MongoDB Connected: ${conn.connection.host}`))
+    .catch(err => {
+        console.log('MongoDB Connection Error:', err.message);
+        if (err.code === 8000) {
+            console.log('>>> LỖI XÁC THỰC: Sai Username hoặc Password trong file .env');
+            console.log('>>> Gợi ý: Hãy kiểm tra lại mật khẩu, đảm bảo không còn ký tự "<" hoặc ">" bao quanh.');
+        }
+    });
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -20,8 +26,8 @@ app.use('/api/posts', require('./routes/posts'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
 });
 
 const PORT = process.env.PORT || 5000;
