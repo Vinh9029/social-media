@@ -15,10 +15,6 @@ router.get('/', async (req, res) => {
     const postsWithCounts = await Promise.all(posts.map(async (post) => {
       const commentsCount = await Comment.countDocuments({ post: post._id });
       
-      // Check if current user liked the post (if token provided in header - optional logic)
-      // For now, we just return the count and boolean based on array
-      // In a real scenario, you'd decode the token here if available to check `liked` status specifically for the user.
-      
       return {
         id: post._id,
         author: {
@@ -31,9 +27,9 @@ router.get('/', async (req, res) => {
         image: post.image_url,
         likes: post.likes.length,
         comments: commentsCount,
-        shares: 0, // Mock value as DB doesn't have shares yet
+        shares: 0,
         timestamp: post.createdAt,
-        liked: false, // Default, needs user context to be accurate
+        liked: false,
         title: post.title
       };
     }));
@@ -56,10 +52,8 @@ router.post('/', auth, async (req, res) => {
     });
 
     const post = await newPost.save();
-    // Populate user to return full post data immediately
     await post.populate('user', 'username full_name avatar_url');
 
-    // Return formatted post matching frontend interface
     res.json({
         id: post._id,
         author: {
@@ -89,12 +83,9 @@ router.post('/:id/like', auth, async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ msg: 'Post not found' });
 
-    // Check if the post has already been liked
     if (post.likes.includes(req.user.id)) {
-      // Unlike
       post.likes = post.likes.filter(id => id.toString() !== req.user.id);
     } else {
-      // Like
       post.likes.unshift(req.user.id);
     }
 
@@ -185,7 +176,6 @@ router.delete('/comments/:id', auth, async (req, res) => {
     const comment = await Comment.findById(req.params.id);
     if (!comment) return res.status(404).json({ msg: 'Comment not found' });
 
-    // Check user
     if (comment.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'User not authorized' });
     }
