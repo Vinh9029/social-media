@@ -11,7 +11,7 @@ app.use(express.json());
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/social-app')
-  .then(() => console.log('MongoDB Connected'))
+  .then((conn) => console.log(`MongoDB Connected: ${conn.connection.host}`))
   .catch(err => console.log('MongoDB Connection Error:', err));
 
 // Routes

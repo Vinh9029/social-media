@@ -9,6 +9,11 @@ import Register from './pages/Register';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
 import PostDetail from './pages/PostDetail';
+import Explore from './pages/Explore';
+import Notifications from './pages/Notifications';
+import Messages from './pages/Messages';
+import Saved from './pages/Saved';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -26,6 +31,11 @@ function App() {
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/post/:postId" element={<PostDetail />} />
+                  <Route path="/explore" element={<Explore />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/saved" element={<Saved />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Routes>
               </main>
               <Rightbar />
