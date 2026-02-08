@@ -84,47 +84,47 @@ export default function PostDetail() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
-  if (!post) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Post not found</div>;
+  if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Loading...</div>;
+  if (!post) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Post not found</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-900 transition-colors">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <button onClick={() => navigate(-1)} className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6">
+        <button onClick={() => navigate(-1)} className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6">
           <ArrowLeft className="w-5 h-5" />
           <span>Back</span>
         </button>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200/50 dark:border-slate-700 overflow-hidden transition-colors">
           <div className="p-6">
             <div className="flex items-start space-x-3 mb-4">
-              <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center"><User className="w-7 h-7 text-gray-600" /></div>
-              <div><h3 className="font-semibold text-gray-900 text-lg">{post.author.name}</h3><p className="text-sm text-gray-500">@{post.author.username} • {formatDistanceToNow(post.timestamp)}</p></div>
+              <div className="w-12 h-12 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center"><User className="w-7 h-7 text-gray-600 dark:text-gray-400" /></div>
+              <div><h3 className="font-semibold text-gray-900 dark:text-white text-lg">{post.author.name}</h3><p className="text-sm text-gray-500 dark:text-gray-400">@{post.author.username} • {formatDistanceToNow(post.timestamp)}</p></div>
             </div>
-            <p className="text-gray-700 text-lg whitespace-pre-wrap mb-4">{post.content}</p>
-            <div className="flex items-center space-x-6 pt-4 border-t border-gray-100">
-              <button onClick={handleLike} className={`flex items-center space-x-2 transition ${post.liked ? 'text-red-500' : 'text-gray-600'}`}><Heart className={`w-6 h-6 ${post.liked ? 'fill-current' : ''}`} /><span className="font-medium">{post.likes}</span></button>
-              <div className="flex items-center space-x-2 text-gray-600"><MessageCircle className="w-6 h-6" /><span className="font-medium">{comments.length}</span></div>
+            <p className="text-gray-700 dark:text-gray-300 text-lg whitespace-pre-wrap mb-4">{post.content}</p>
+            <div className="flex items-center space-x-6 pt-4 border-t border-gray-100 dark:border-slate-700">
+              <button onClick={handleLike} className={`flex items-center space-x-2 transition ${post.liked ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}><Heart className={`w-6 h-6 ${post.liked ? 'fill-current' : ''}`} /><span className="font-medium">{post.likes}</span></button>
+              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400"><MessageCircle className="w-6 h-6" /><span className="font-medium">{comments.length}</span></div>
             </div>
           </div>
 
-          <div className="border-t border-gray-200 p-6 bg-gray-50">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Comments ({comments.length})</h3>
+          <div className="border-t border-gray-200 dark:border-slate-700 p-6 bg-gray-50 dark:bg-slate-800/50">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comments ({comments.length})</h3>
             <form onSubmit={handleSubmitComment} className="mb-6">
               <div className="flex space-x-3">
-                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write a comment..." className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                <button type="submit" disabled={!newComment.trim()} className="px-4 py-2 bg-blue-600 text-white rounded-lg"><Send className="w-4 h-4" /></button>
+                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write a comment..." className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <button type="submit" disabled={!newComment.trim()} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"><Send className="w-4 h-4" /></button>
               </div>
             </form>
             <div className="space-y-4">
               {comments.map((comment) => (
-                <div key={comment.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                <div key={comment.id} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
-                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-gray-600" /></div>
+                      <div className="w-8 h-8 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-gray-600 dark:text-gray-400" /></div>
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1"><span className="font-semibold text-gray-900">{comment.author.name}</span><span className="text-sm text-gray-500">{formatDistanceToNow(comment.timestamp)}</span></div>
-                        <p className="text-gray-700">{comment.content}</p>
+                        <div className="flex items-center space-x-2 mb-1"><span className="font-semibold text-gray-900 dark:text-white">{comment.author.name}</span><span className="text-sm text-gray-500 dark:text-gray-400">{formatDistanceToNow(comment.timestamp)}</span></div>
+                        <p className="text-gray-700 dark:text-gray-300">{comment.content}</p>
                       </div>
                     </div>
                   </div>
