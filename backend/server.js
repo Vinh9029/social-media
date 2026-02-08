@@ -14,7 +14,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/social-app')
+mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/social-app')
     .then((conn) => console.log(`MongoDB Connected: ${conn.connection.host}`))
     .catch(err => {
         console.log('MongoDB Connection Error:', err.message);
