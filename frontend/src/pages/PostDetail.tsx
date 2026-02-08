@@ -136,7 +136,7 @@ export default function PostDetail() {
   };
 
   const CommentItem = ({ comment, depth = 0 }: { comment: Comment, depth?: number }) => {
-    const isLiked = user && comment.likes.includes(user.id);
+    const isLiked = user && comment.likes?.includes(user.id);
     
     return (
       <div className={`flex flex-col ${depth > 0 ? 'ml-10 mt-3' : 'mt-4'}`}>
@@ -159,7 +159,7 @@ export default function PostDetail() {
                 onClick={() => handleLikeComment(comment.id)}
                 className={`hover:underline ${isLiked ? 'text-red-500 font-bold' : ''}`}
               >
-                Like {comment.likes.length > 0 && `(${comment.likes.length})`}
+                Like {comment.likes && comment.likes.length > 0 && `(${comment.likes.length})`}
               </button>
               <button 
                 onClick={() => setReplyingTo(comment)}

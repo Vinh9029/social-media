@@ -34,6 +34,6 @@ export interface Comment {
   postTitle?: string; // Dành cho trang
   //  Admin
   parentId?: string | null;
-  likes: string[];
+  likes?: string[];
   replies?: Comment[];
 }
