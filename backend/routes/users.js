@@ -19,7 +19,7 @@ router.put('/follow/:id', auth, async (req, res) => {
     }
 
     // Kiểm tra xem đã follow chưa
-    if (targetUser.followers.includes(req.user.id)) {
+    if (targetUser.followers.some(id => id.toString() === req.user.id)) {
       // Đã follow -> Thực hiện Unfollow
       await targetUser.updateOne({ $pull: { followers: req.user.id } });
       await currentUser.updateOne({ $pull: { following: req.params.id } });
@@ -43,7 +43,7 @@ router.put('/save/:postId', auth, async (req, res) => {
     const postId = req.params.postId;
 
     // Kiểm tra xem đã lưu chưa
-    if (user.saved_posts.includes(postId)) {
+    if (user.saved_posts.some(id => id.toString() === postId)) {
       // Đã lưu -> Bỏ lưu
       await user.updateOne({ $pull: { saved_posts: postId } });
       res.json({ msg: 'Unsaved', isSaved: false });
@@ -84,7 +84,7 @@ router.put('/block/:id', auth, async (req, res) => {
     const currentUser = await User.findById(req.user.id);
     const targetId = req.params.id;
 
-    if (!currentUser.blocked_users.includes(targetId)) {
+    if (!currentUser.blocked_users.some(id => id.toString() === targetId)) {
       await currentUser.updateOne({ $push: { blocked_users: targetId } });
     }
     res.json({ msg: 'User blocked' });

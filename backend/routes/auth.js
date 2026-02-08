@@ -145,7 +145,7 @@ router.put('/change-password', auth, async (req, res) => {
 router.get('/google', (req, res) => {
   const redirectUri = process.env.GOOGLE_CALLBACK_URL;
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=&redirect_uri=&response_type=code&scope=profile email`;
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=profile email`;
   res.redirect(url);
 });
 
@@ -191,7 +191,7 @@ router.get('/google/callback', async (req, res) => {
     }
 
     const token = generateToken(user.id);
-    res.redirect(`${process.env.CLIENT_URL}?token=`);
+    res.redirect(`${process.env.CLIENT_URL}?token=${token}`);
   } catch (err) {
     console.error('Google Auth Error:', err);
     res.redirect(`${process.env.CLIENT_URL}/login?error=GoogleAuthFailed`);
@@ -202,7 +202,7 @@ router.get('/google/callback', async (req, res) => {
 router.get('/github', (req, res) => {
   const redirectUri = process.env.GITHUB_CALLBACK_URL;
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const url = `https://github.com/login/oauth/authorize?client_id=&redirect_uri=&scope=user:email`;
+  const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
   res.redirect(url);
 });
 
@@ -263,7 +263,7 @@ router.get('/github/callback', async (req, res) => {
     }
 
     const token = generateToken(user.id);
-    res.redirect(`${process.env.CLIENT_URL}?token=`);
+    res.redirect(`${process.env.CLIENT_URL}?token=${token}`);
   } catch (err) {
     console.error('GitHub Auth Error:', err);
     res.redirect(`${process.env.CLIENT_URL}/login?error=GitHubAuthFailed`);

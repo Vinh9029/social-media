@@ -284,7 +284,7 @@ router.post('/comments/:id/like', auth, async (req, res) => {
 
     if (!comment.likes) comment.likes = [];
 
-    if (comment.likes.includes(req.user.id)) {
+    if (comment.likes.some(id => id.toString() === req.user.id)) {
       comment.likes = comment.likes.filter(id => id.toString() !== req.user.id);
     } else {
       comment.likes.unshift(req.user.id);
