@@ -6,6 +6,10 @@ export interface User {
   role?: 'user' | 'admin';
   bio?: string;
   email?: string;
+  cover?: string;
+  github?: string;
+  facebook?: string;
+  linkedin?: string;
 }
 
 export interface Post {

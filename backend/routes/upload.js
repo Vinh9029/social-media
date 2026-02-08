@@ -59,6 +59,26 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
   }
 });
 
+// Upload Cover Image Route
+router.post('/cover', auth, upload.single('cover'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Vui lòng chọn file ảnh' });
+    }
+
+    // Tạo đường dẫn URL
+    const coverUrl = `${req.protocol}://${req.get('host')}/uploads/users/${req.user.id}/${req.file.filename}`;
+
+    // Cập nhật cover_url cho user trong DB
+    await User.findByIdAndUpdate(req.user.id, { cover_url: coverUrl });
+
+    res.json({ cover: coverUrl, message: 'Upload thành công' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Lỗi server khi upload' });
+  }
+});
+
 // Upload Post Image Route
 router.post('/post', auth, upload.single('image'), async (req, res) => {
   try {

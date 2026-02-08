@@ -37,7 +37,8 @@ router.post('/register', async (req, res) => {
           email, 
           name: full_name, // Map full_name -> name
           role: user.role,
-          avatar: user.avatar_url // Map avatar_url -> avatar
+          avatar: user.avatar_url, // Map avatar_url -> avatar
+          cover: user.cover_url // Map cover_url -> cover
         } 
       });
     });
@@ -69,7 +70,8 @@ router.post('/login', async (req, res) => {
           name: user.full_name, 
           role: user.role, 
           avatar: user.avatar_url,
-          bio: user.bio
+          bio: user.bio,
+          cover: user.cover_url
         } 
       });
     });
@@ -91,7 +93,8 @@ router.get('/me', auth, async (req, res) => {
       name: user.full_name,
       role: user.role,
       avatar: user.avatar_url,
-      bio: user.bio
+      bio: user.bio,
+      cover: user.cover_url
     };
     res.json(userResponse);
   } catch (err) {
