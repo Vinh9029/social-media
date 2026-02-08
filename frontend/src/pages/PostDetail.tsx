@@ -4,6 +4,7 @@ import { Heart, MessageCircle, ArrowLeft, User, Trash2, Send, X, Share2 } from '
 import { formatDistanceToNow } from '../utils/dateUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment } from '../types';
+import { API_URL } from '../config';
 
 export default function PostDetail() {
   const { postId } = useParams();
@@ -18,7 +19,7 @@ export default function PostDetail() {
   useEffect(() => {
     if (postId) {
       // Fetch Post
-      fetch(`http://localhost:5000/api/posts/${postId}`)
+      fetch(`${API_URL}/api/posts/${postId}`)
         .then(res => {
           if (!res.ok) throw new Error('Post not found');
           return res.json();
@@ -28,7 +29,7 @@ export default function PostDetail() {
         .finally(() => setLoading(false));
 
       // Fetch Comments
-      fetch(`http://localhost:5000/api/posts/${postId}/comments`)
+      fetch(`${API_URL}/api/posts/${postId}/comments`)
         .then(res => res.json())
         .then(data => setComments(data))
         .catch(err => console.error(err));
@@ -39,7 +40,7 @@ export default function PostDetail() {
     if (!post || !user) return;
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${post.id}/like`, {
+      const res = await fetch(`${API_URL}/api/posts/${post.id}/like`, {
         method: 'POST',
         headers: { 'x-auth-token': token || '' }
       });
@@ -56,7 +57,7 @@ export default function PostDetail() {
     if (!user) return;
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/comments/${commentId}/like`, {
+      const res = await fetch(`${API_URL}/api/posts/comments/${commentId}/like`, {
         method: 'POST',
         headers: { 'x-auth-token': token || '' }
       });
@@ -80,7 +81,7 @@ export default function PostDetail() {
     const token = localStorage.getItem('token');
     
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${postId}/comments`, {
+      const res = await fetch(`${API_URL}/api/posts/${postId}/comments`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

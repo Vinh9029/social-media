@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
 import { Settings as SettingsIcon, Moon, Sun, Shield, User, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const Settings = () => {
   const { user, updateProfile, signOut } = useAuth();
@@ -31,7 +32,7 @@ const Settings = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/auth/change-password', {
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

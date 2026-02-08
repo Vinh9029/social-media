@@ -5,6 +5,7 @@ import PostCard from '../components/PostCard';
 import { User, Edit2, Save, X, Users, Heart, Camera, Upload, Image as ImageIcon, Github, Facebook, Linkedin, UserPlus, MessageSquare } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Post } from '../types';
+import { API_URL } from '../config';
 
 export default function Profile() {
   const { user, updateProfile } = useAuth();
@@ -38,7 +39,7 @@ export default function Profile() {
         linkedin: user.linkedin || '',
       });
       // Fetch user's posts
-      fetch('http://localhost:5000/api/posts')
+      fetch(`${API_URL}/api/posts`)
         .then(res => res.json())
         .then((data: Post[]) => {
           // Filter posts by current user
@@ -52,7 +53,7 @@ export default function Profile() {
   const fetchCollection = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/upload/collection', {
+      const res = await fetch(`${API_URL}/api/upload/collection`, {
         headers: { 'x-auth-token': token || '' }
       });
       if (res.ok) {
@@ -74,7 +75,7 @@ export default function Profile() {
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/upload/avatar', {
+      const res = await fetch(`${API_URL}/api/upload/avatar`, {
         method: 'POST',
         headers: { 'x-auth-token': token || '' },
         body: formData
@@ -108,7 +109,7 @@ export default function Profile() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/upload/cover', {
+      const res = await fetch(`${API_URL}/api/upload/cover`, {
         method: 'POST',
         headers: { 'x-auth-token': token || '' },
         body: formData

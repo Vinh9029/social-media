@@ -142,6 +142,7 @@ router.get('/google', (req, res) => {
 
 router.get('/google/callback', async (req, res) => {
   const code = req.query.code;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   try {
     // Exchange code for token
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -178,11 +179,11 @@ router.get('/google/callback', async (req, res) => {
     const payload = { user: { id: user.id } };
     jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
       if (err) throw err;
-      res.redirect(`http://localhost:5173/login?token=${token}`);
+      res.redirect(`${clientUrl}/login?token=${token}`);
     });
   } catch (err) {
     console.error(err);
-    res.redirect('http://localhost:5173/login?error=GoogleLoginFailed');
+    res.redirect(`${clientUrl}/login?error=GoogleLoginFailed`);
   }
 });
 
@@ -200,18 +201,66 @@ router.get('/github', (req, res) => {
 
 router.get('/github/callback', async (req, res) => {
   const code = req.query.code;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
   try {
     // Exchange code for token
-    const tokenRes = await fetch(`https://github.com/login/oauth/access_token?client_id=${process.env.GITHUB_CLIENT_ID}&client_secret=${process.env.GITHUB_CLIENT_SECRET}&code=${code}`, {
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
-      headers: { Accept: 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json' 
+      },
+      body: JSON.stringify({
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code
+      })
     });
     const tokenData = await tokenRes.json();
-    // Note: Logic lấy user info GitHub tương tự Google, bạn có thể bổ sung sau.
-    // Tạm thời redirect về login để tránh lỗi nếu chưa cấu hình env
-    res.redirect('http://localhost:5173/login?error=GitHubNotConfiguredYet');
+    
+    if (tokenData.error) throw new Error(tokenData.error_description);
+
+    // Get User Info
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+    });
+    const githubUser = await userRes.json();
+
+    // Get Email (GitHub often keeps emails private, need explicit fetch)
+    let email = githubUser.email;
+    if (!email) {
+      const emailsRes = await fetch('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` }
+      });
+      const emails = await emailsRes.json();
+      const primaryEmail = Array.isArray(emails) ? emails.find(e => e.primary && e.verified) : null;
+      email = primaryEmail ? primaryEmail.email : `${githubUser.login}@github.com`; // Fallback
+    }
+
+    // Find or Create User
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({
+        username: githubUser.login,
+        email: email,
+        password: await bcrypt.hash(Math.random().toString(36), 10),
+        full_name: githubUser.name || githubUser.login,
+        avatar_url: githubUser.avatar_url,
+        bio: githubUser.bio
+      });
+      await user.save();
+    }
+
+    // Generate Token & Redirect
+    const payload = { user: { id: user.id } };
+    jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
+      if (err) throw err;
+      res.redirect(`${clientUrl}/login?token=${token}`);
+    });
   } catch (err) {
-    res.redirect('http://localhost:5173/login?error=GitHubLoginFailed');
+    console.error('GitHub Login Error:', err);
+    res.redirect(`${clientUrl}/login?error=GitHubLoginFailed`);
   }
 });
 

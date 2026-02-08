@@ -5,6 +5,7 @@ import { Post } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const Feed = () => {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ const Feed = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/posts');
+        const res = await fetch(`${API_URL}/api/posts`);
         if (res.ok) {
           const data = await res.json();
           setPosts(data);
@@ -71,7 +72,7 @@ const Feed = () => {
       if (selectedImage) {
         const formData = new FormData();
         formData.append('image', selectedImage);
-        const uploadRes = await fetch('http://localhost:5000/api/upload/post', {
+        const uploadRes = await fetch(`${API_URL}/api/upload/post`, {
           method: 'POST',
           headers: { 'x-auth-token': token || '' },
           body: formData
@@ -82,7 +83,7 @@ const Feed = () => {
       }
 
       // 2. Tạo bài viết
-      const postRes = await fetch('http://localhost:5000/api/posts', {
+      const postRes = await fetch(`${API_URL}/api/posts`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

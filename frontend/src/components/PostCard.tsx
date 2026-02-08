@@ -4,6 +4,7 @@ import { Post } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
+import { API_URL } from '../config';
 
 interface PostCardProps {
   post: Post;
@@ -40,7 +41,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/posts/${post.id}/like`, {
+      const res = await fetch(`${API_URL}/api/posts/${post.id}/like`, {
         method: 'POST',
         headers: { 'x-auth-token': token || '' }
       });
