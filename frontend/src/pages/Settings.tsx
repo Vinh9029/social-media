@@ -23,14 +23,30 @@ const Settings = () => {
     else showToast('Đã cập nhật thông tin', 'success');
   };
 
-  const handleUpdatePassword = () => {
-    // Giả lập logic đổi pass
+  const handleUpdatePassword = async () => {
     if (passwords.new !== passwords.confirm) {
       showToast('Mật khẩu xác nhận không khớp', 'error');
       return;
     }
-    showToast('Tính năng đổi mật khẩu đang phát triển', 'info');
-    setPasswords({ current: '', new: '', confirm: '' });
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/auth/change-password', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token || ''
+        },
+        body: JSON.stringify({ currentPassword: passwords.current, newPassword: passwords.new })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      
+      showToast('Đổi mật khẩu thành công', 'success');
+      setPasswords({ current: '', new: '', confirm: '' });
+    } catch (error: any) {
+      showToast(error.message || 'Lỗi đổi mật khẩu', 'error');
+    }
   };
 
   if (!user) {
@@ -137,7 +153,7 @@ const Settings = () => {
             </div>
             <button 
               onClick={toggleTheme}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200'}`}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200'}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
