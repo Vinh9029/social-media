@@ -8,6 +8,10 @@ const User = require('../models/User');
 
 // Helper: Generate Token
 const generateToken = (id) => {
+  if (!process.env.JWT_SECRET) {
+    console.error("FATAL ERROR: JWT_SECRET is not defined in .env file");
+    throw new Error("Server configuration error: Missing JWT_SECRET");
+  }
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
@@ -31,9 +35,16 @@ router.post('/register', async (req, res) => {
   const { username, email, password, full_name } = req.body;
 
   try {
+    // Check Email
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'Email này đã được sử dụng' });
+    }
+
+    // Check Username
+    let userByUsername = await User.findOne({ username });
+    if (userByUsername) {
+      return res.status(400).json({ message: 'Username này đã được sử dụng' });
     }
 
     user = new User({
@@ -52,7 +63,7 @@ router.post('/register', async (req, res) => {
     const token = generateToken(user.id);
     res.json({ token, user: { id: user.id, username: user.username, email: user.email, name: user.full_name, avatar: user.avatar_url } });
   } catch (err) {
-    console.error(err.message);
+    console.error("Register Error:", err.message);
     res.status(500).send('Server error');
   }
 });
@@ -77,7 +88,7 @@ router.post('/login', async (req, res) => {
     const token = generateToken(user.id);
     res.json({ token, user: { id: user.id, username: user.username, email: user.email, name: user.full_name, avatar: user.avatar_url } });
   } catch (err) {
-    console.error(err.message);
+    console.error("Login Error:", err.message);
     res.status(500).send('Server error');
   }
 });
@@ -185,8 +196,13 @@ router.get('/google/callback', async (req, res) => {
         email: userData.email,
         password: hashedPassword,
         full_name: userData.name,
-        avatar_url: userData.picture
+        avatar_url: userData.picture,
+        googleId: userData.sub
       });
+      await user.save();
+    } else if (!user.googleId) {
+      // Nếu user đã tồn tại (do đăng ký email trước đó) nhưng chưa có googleId -> Cập nhật thêm
+      user.googleId = userData.sub;
       await user.save();
     }
 
@@ -251,14 +267,19 @@ router.get('/github/callback', async (req, res) => {
       const hashedPassword = await bcrypt.hash(randomPassword, salt);
 
       user = new User({
-        username: userData.login,
+        username: userData.login + Math.floor(Math.random() * 1000), // Thêm số ngẫu nhiên để tránh trùng username
         email: email,
         password: hashedPassword,
         full_name: userData.name || userData.login,
         avatar_url: userData.avatar_url,
         github: userData.html_url,
-        bio: userData.bio
+        bio: userData.bio,
+        githubId: userData.id.toString()
       });
+      await user.save();
+    } else if (!user.githubId) {
+      // Nếu user đã tồn tại nhưng chưa có githubId -> Cập nhật thêm
+      user.githubId = userData.id.toString();
       await user.save();
     }
 

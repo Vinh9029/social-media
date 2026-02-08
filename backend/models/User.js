@@ -10,6 +10,10 @@ const UserSchema = new mongoose.Schema({
   bio: { type: String },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   
+  // Social Login IDs
+  googleId: { type: String },
+  githubId: { type: String },
+
   // Social Links
   github: { type: String },
   facebook: { type: String },
