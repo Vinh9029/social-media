@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Send, Search, MoreVertical, Phone, Video, ArrowLeft } from 'lucide-react';
+import { Mail, Send, Search, MoreVertical, Phone, Video, ArrowLeft, Ban } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import { Message, Conversation, User } from '../types';
@@ -8,6 +9,7 @@ import { formatDistanceToNow } from '../utils/dateUtils';
 
 const Messages = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const [input, setInput] = useState('');
@@ -19,16 +21,26 @@ const Messages = () => {
   const [chatPartner, setChatPartner] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Search & Block
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // 1. Fetch danh sách cuộc trò chuyện
   useEffect(() => {
-    fetchConversations();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchConversations();
+    }, 300); // Debounce search
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/messages/conversations`, {
+      // Add search query param
+      const queryParam = searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : '';
+      const res = await fetch(`${API_URL}/api/messages/conversations${queryParam}`, {
         headers: { 'x-auth-token': token || '' }
       });
       if (res.ok) {
@@ -116,6 +128,25 @@ const Messages = () => {
         setInput('');
         fetchConversations(); // Refresh list để cập nhật last message
       }
+      if (res.status === 403) {
+        showToast('Không thể gửi tin nhắn (đã bị chặn)', 'error');
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!selectedChat) return;
+    if (!window.confirm('Bạn có chắc chắn muốn chặn người dùng này?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/api/users/block/${selectedChat}`, {
+        method: 'PUT',
+        headers: { 'x-auth-token': token || '' }
+      });
+      showToast('Đã chặn người dùng', 'success');
+      setShowMenu(false);
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -124,6 +155,17 @@ const Messages = () => {
   const handleViewProfile = () => {
     if (chatPartner) navigate(`/profile/${chatPartner.id}`);
   };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!user) {
     return (
@@ -145,7 +187,12 @@ const Messages = () => {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tin nhắn</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input type="text" placeholder="Tìm kiếm..." className="w-full bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+              <input 
+                type="text" 
+                placeholder="Tìm kiếm..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -212,7 +259,15 @@ const Messages = () => {
             <div className="flex items-center gap-2 text-gray-500">
               <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><Phone size={20} /></button>
               <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><Video size={20} /></button>
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><MoreVertical size={20} /></button>
+              <div className="relative" ref={menuRef}>
+                <button onClick={() => setShowMenu(!showMenu)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><MoreVertical size={20} /></button>
+                {showMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 py-1 z-20">
+                    <button onClick={handleViewProfile} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">Xem hồ sơ</button>
+                    <button onClick={handleBlockUser} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Ban size={14} /> Chặn tin nhắn</button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

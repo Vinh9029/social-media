@@ -100,7 +100,7 @@ const SearchPage = () => {
       </div>
 
       {/* Results */}
-      <div className="space-y-6 mt-2">
+      <div className="space-y-6 mt-2 animate-in fade-in duration-500">
         {!query && (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <SearchIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -112,7 +112,7 @@ const SearchPage = () => {
         {(activeTab === 'all' || activeTab === 'users') && results.users.length > 0 && (
           <div className="space-y-4">
             {activeTab === 'all' && <h3 className="font-bold text-lg text-gray-900 dark:text-white">Mọi người</h3>}
-            <div className="grid gap-4">
+            <div className="grid gap-4 animate-in slide-in-from-bottom-4 duration-500">
               {results.users.map(user => (
                 <div key={user._id} onClick={() => navigate(`/profile/${user._id}`)} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                   <img 
@@ -138,7 +138,7 @@ const SearchPage = () => {
         {(activeTab === 'all' || activeTab === 'posts') && results.posts.length > 0 && (
           <div className="space-y-4">
             {activeTab === 'all' && <h3 className="font-bold text-lg text-gray-900 dark:text-white mt-6">Bài viết</h3>}
-            {results.posts.map(post => (
+            {results.posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
           </div>

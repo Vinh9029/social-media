@@ -153,6 +153,10 @@ const Feed = () => {
     }
   };
 
+  const handleDeletePost = (postId: string) => {
+    setPosts(prev => prev.filter(p => p.id !== postId));
+  };
+
   return (
     <div className="max-w-2xl mx-auto w-full py-6 px-4">
       {/* Create Post Input */}
@@ -225,7 +229,7 @@ const Feed = () => {
           <div className="text-center py-10 text-gray-500">Đang tải bài viết...</div>
         ) : posts.length > 0 ? (
           posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.id} post={post} onDelete={handleDeletePost} />
           ))
         ) : (
           <div className="text-center py-10 text-gray-500">Chưa có bài viết nào.</div>

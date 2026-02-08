@@ -47,7 +47,14 @@ const Sidebar = () => {
           return (
           <button
             key={item.label}
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              const protectedPaths = ['/notifications', '/messages', '/saved', '/profile', '/settings'];
+              if (!user && protectedPaths.includes(item.path)) {
+                navigate('/not-found'); // Chuyển hướng đến trang 404
+              } else {
+                navigate(item.path);
+              }
+            }}
             className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all duration-200 group ${
               isActive
                 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold'

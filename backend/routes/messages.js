@@ -8,6 +8,15 @@ const User = require('../models/User');
 router.post('/', auth, async (req, res) => {
   try {
     const { recipientId, content } = req.body;
+
+    // Check blocking
+    const sender = await User.findById(req.user.id);
+    const recipient = await User.findById(recipientId);
+
+    if (sender.blocked_users.includes(recipientId) || recipient.blocked_users.includes(req.user.id)) {
+      return res.status(403).json({ msg: 'Không thể gửi tin nhắn cho người dùng này' });
+    }
+
     const newMessage = new Message({
       sender: req.user.id,
       recipient: recipientId,
@@ -26,6 +35,7 @@ router.post('/', auth, async (req, res) => {
 // Lấy danh sách các cuộc trò chuyện
 router.get('/conversations', auth, async (req, res) => {
   try {
+    const { q } = req.query;
     const messages = await Message.find({
       $or: [{ sender: req.user.id }, { recipient: req.user.id }]
     })
@@ -56,7 +66,16 @@ router.get('/conversations', auth, async (req, res) => {
         });
       }
     });
-    res.json(conversations);
+
+    // Filter if query exists
+    if (q) {
+      const regex = new RegExp(q, 'i');
+      const filtered = conversations.filter(c => regex.test(c.name) || regex.test(c.lastMessage));
+      res.json(filtered);
+    } else {
+      res.json(conversations);
+    }
+
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');

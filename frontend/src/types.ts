@@ -11,6 +11,10 @@ export interface User {
   github?: string;
   facebook?: string;
   linkedin?: string;
+  saved_posts?: string[]; // Danh sách ID bài viết đã lưu
+  followers?: string[];
+  following?: string[];
+  blocked_users?: string[];
 }
 
 export interface Post {
@@ -24,6 +28,8 @@ export interface Post {
   timestamp: string;
   reactions?: { user: string; type: string }[];
   title?: string;
+  editedAt?: string;
+  originalPost?: Post; // Bài viết gốc nếu là share
 }
 
 export interface Comment {

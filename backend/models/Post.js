@@ -20,7 +20,12 @@ const PostSchema = new mongoose.Schema({
   
   // Comments sẽ được query từ collection Comment, nhưng có thể cache số lượng nếu cần
   
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  editedAt: { type: Date }, // Thời gian chỉnh sửa
+  originalPost: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Post' 
+  } // Bài viết gốc nếu là chia sẻ
 });
 
 module.exports = mongoose.model('Post', PostSchema);

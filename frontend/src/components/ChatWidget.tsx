@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Minus } from 'lucide-react';
+import { MessageCircle, X, Send, Minus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL } from '../config';
 import { Message, Conversation } from '../types';
@@ -9,16 +9,18 @@ const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
+  const [view, setView] = useState<'list' | 'chat'>('list'); // 'list' or 'chat'
   
   // State dữ liệu thật
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [recentConversation, setRecentConversation] = useState<Conversation | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch cuộc trò chuyện gần nhất khi mở widget
+  // Fetch danh sách cuộc trò chuyện khi mở widget
   useEffect(() => {
     if (isOpen && !isMinimized) {
-      fetchRecentChat();
+      fetchConversations();
     }
   }, [isOpen, isMinimized]);
 
@@ -27,28 +29,32 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isOpen]);
 
-  const fetchRecentChat = async () => {
+  const fetchConversations = async () => {
     try {
       const token = localStorage.getItem('token');
-      // 1. Lấy danh sách hội thoại
       const convRes = await fetch(`${API_URL}/api/messages/conversations`, {
         headers: { 'x-auth-token': token || '' }
       });
       if (convRes.ok) {
-        const conversations = await convRes.json();
-        if (conversations.length > 0) {
-          const lastConv = conversations[0];
-          setRecentConversation(lastConv);
-          
-          // 2. Lấy tin nhắn của hội thoại gần nhất
-          const msgRes = await fetch(`${API_URL}/api/messages/${lastConv.partnerId}`, {
-            headers: { 'x-auth-token': token || '' }
-          });
-          if (msgRes.ok) {
-            const msgs = await msgRes.json();
-            setMessages(msgs);
-          }
-        }
+        const data = await convRes.json();
+        setConversations(data);
+      }
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+    }
+  };
+
+  const openChat = async (conv: Conversation) => {
+    setRecentConversation(conv);
+    setView('chat');
+    try {
+      const token = localStorage.getItem('token');
+      const msgRes = await fetch(`${API_URL}/api/messages/${conv.partnerId}`, {
+        headers: { 'x-auth-token': token || '' }
+      });
+      if (msgRes.ok) {
+        const msgs = await msgRes.json();
+        setMessages(msgs);
       }
     } catch (error) {
       console.error("Error fetching chat widget data:", error);
@@ -101,11 +107,14 @@ const ChatWidget = () => {
           {/* Header */}
           <div className="bg-blue-600 p-3 flex justify-between items-center text-white">
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <div className="w-2 h-2 bg-green-400 rounded-full absolute bottom-0 right-0 border border-blue-600"></div>
+              {view === 'chat' ? (
+                <button onClick={() => setView('list')} className="hover:bg-blue-700 p-1 rounded"><ArrowLeft size={18} /></button>
+              ) : (
                 <MessageCircle size={20} />
-              </div>
-              <span className="font-semibold text-sm">{recentConversation ? recentConversation.name : 'Tin nhắn'}</span>
+              )}
+              <span className="font-semibold text-sm truncate max-w-[150px]">
+                {view === 'chat' && recentConversation ? recentConversation.name : 'Tin nhắn'}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <button onClick={() => setIsMinimized(true)} className="p-1 hover:bg-blue-700 rounded"><Minus size={16} /></button>
@@ -113,42 +122,74 @@ const ChatWidget = () => {
             </div>
           </div>
 
-          {/* Body (Messages) */}
-          <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-slate-900/50 space-y-3">
-            {messages.length === 0 ? (
-              <div className="text-center text-gray-400 text-sm mt-10">Chưa có tin nhắn nào gần đây.</div>
-            ) : (
-              messages.map(msg => (
-                <div key={msg._id} className={`flex ${msg.sender?._id === user.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`px-3 py-2 rounded-2xl text-sm max-w-[80%] ${msg.sender?._id === user.id ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white rounded-tl-none'}`}>
-                    {msg.content}
+          {/* Body */}
+          {view === 'list' ? (
+            // LIST VIEW
+            <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-800">
+              {conversations.length === 0 ? (
+                <div className="text-center text-gray-400 text-sm mt-10 p-4">Chưa có cuộc trò chuyện nào.</div>
+              ) : (
+                conversations.map(conv => (
+                  <div 
+                    key={conv.partnerId} 
+                    onClick={() => openChat(conv)}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer border-b border-gray-50 dark:border-slate-700/50"
+                  >
+                    <div className="relative">
+                      <img src={conv.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.name)}&background=random`} alt={conv.name} className="w-10 h-10 rounded-full object-cover" />
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">{conv.name}</h4>
+                      <p className={`text-xs truncate ${!conv.read && !conv.isSender ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {conv.isSender ? 'Bạn: ' : ''}{conv.lastMessage}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+                ))
+              )}
+            </div>
+          ) : (
+            // CHAT VIEW
+            <div className="flex-1 p-3 overflow-y-auto bg-gray-50 dark:bg-slate-900/50 space-y-2">
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-400 text-sm mt-10">Bắt đầu cuộc trò chuyện...</div>
+              ) : (
+                messages.map(msg => (
+                  <div key={msg._id} className={`flex ${msg.sender?._id === user.id ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`px-3 py-2 rounded-2xl text-sm max-w-[85%] break-words ${msg.sender?._id === user.id ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-tl-none shadow-sm'}`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
 
           {/* Footer */}
-          <div className="p-3 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <div className="flex items-center gap-2">
-              <input 
-                type="text" 
-                placeholder="Nhập tin nhắn..." 
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                className="flex-1 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white text-sm rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              />
-              <button 
-                className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50" 
-                onClick={handleSend}
-                disabled={!input.trim() || !recentConversation}
-              >
-                <Send size={16} />
-              </button>
+          {view === 'chat' && (
+            <div className="p-2 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Nhập tin nhắn..." 
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  className="flex-1 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white text-sm rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                  autoFocus
+                />
+                <button 
+                  className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50" 
+                  onClick={handleSend}
+                  disabled={!input.trim() || !recentConversation}
+                >
+                  <Send size={14} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

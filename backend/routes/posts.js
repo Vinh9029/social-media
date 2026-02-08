@@ -4,11 +4,63 @@ const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const auth = require('../middleware/auth');
 
+// Get Trending Posts (For Explore Page)
+router.get('/trending', async (req, res) => {
+  try {
+    // Lấy bài viết, sắp xếp theo số lượng reaction giảm dần
+    // Lưu ý: Đây là cách đơn giản, thực tế có thể cần aggregate framework
+    const posts = await Post.find()
+      .populate('author', 'username full_name avatar_url')
+      .populate({
+        path: 'originalPost',
+        populate: {
+          path: 'author',
+          select: 'username full_name avatar_url'
+        }
+      })
+      .sort({ 'reactions': -1, createdAt: -1 }) 
+      .limit(20);
+
+    const formattedPosts = await Promise.all(posts.map(async (post) => {
+      const commentsCount = await Comment.countDocuments({ post: post._id });
+      return {
+        id: post._id,
+        author: post.author ? {
+          id: post.author._id,
+          name: post.author.full_name,
+          username: post.author.username,
+          avatar: post.author.avatar_url
+        } : { id: 'unknown', name: 'Unknown', avatar: '' },
+        content: post.content,
+        image: post.image_url,
+        likes: post.reactions ? post.reactions.length : 0,
+        reactions: post.reactions || [],
+        comments: commentsCount,
+        shares: 0,
+        timestamp: post.createdAt,
+        editedAt: post.editedAt,
+        originalPost: post.originalPost
+      };
+    }));
+    res.json(formattedPosts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Get all posts
 router.get('/', async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('author', 'username full_name avatar_url')
+      .populate({
+        path: 'originalPost',
+        populate: {
+          path: 'author',
+          select: 'username full_name avatar_url'
+        }
+      })
       .sort({ createdAt: -1 });
 
     // Enrich posts with comment counts and map to Frontend structure
@@ -41,7 +93,9 @@ router.get('/', async (req, res) => {
         comments: commentsCount,
         shares: 0,
         timestamp: post.createdAt,
-        title: post.title
+        title: post.title,
+        editedAt: post.editedAt,
+        originalPost: post.originalPost
       };
     }));
 
@@ -80,7 +134,8 @@ router.post('/', auth, async (req, res) => {
         comments: 0,
         shares: 0,
         timestamp: post.createdAt,
-        title: post.title
+        title: post.title,
+        originalPost: null
     });
   } catch (err) {
     console.error(err.message);
@@ -125,7 +180,15 @@ router.post('/:id/reaction', auth, async (req, res) => {
 // Get single post by ID
 router.get('/:id', async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate('author', 'username full_name avatar_url');
+    const post = await Post.findById(req.params.id)
+      .populate('author', 'username full_name avatar_url')
+      .populate({
+        path: 'originalPost',
+        populate: {
+          path: 'author',
+          select: 'username full_name avatar_url'
+        }
+      });
     if (!post) return res.status(404).json({ msg: 'Post not found' });
     
     const commentsCount = await Comment.countDocuments({ post: post._id });
@@ -152,7 +215,9 @@ router.get('/:id', async (req, res) => {
       comments: commentsCount,
       shares: 0,
       timestamp: post.createdAt,
-      title: post.title
+      title: post.title,
+      editedAt: post.editedAt,
+      originalPost: post.originalPost
     });
   } catch (err) {
     console.error(err.message);
@@ -246,6 +311,76 @@ router.delete('/comments/:id', auth, async (req, res) => {
     res.json({ msg: 'Comment removed' });
   } catch (err) {
     console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Update Post
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ msg: 'Post not found' });
+
+    // Check user
+    if (post.author.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+
+    post.content = req.body.content || post.content;
+    post.editedAt = Date.now();
+    
+    await post.save();
+    res.json(post);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Delete Post
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ msg: 'Post not found' });
+
+    if (post.author.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+
+    await post.deleteOne();
+    // Xóa luôn comment liên quan
+    await Comment.deleteMany({ post: req.params.id });
+
+    res.json({ msg: 'Post removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Share Post
+router.post('/:id/share', auth, async (req, res) => {
+  try {
+    const originalPost = await Post.findById(req.params.id);
+    if (!originalPost) return res.status(404).json({ msg: 'Post not found' });
+
+    // Nếu bài viết gốc cũng là bài share, hãy share bài gốc thực sự
+    const sharedId = originalPost.originalPost ? originalPost.originalPost : originalPost._id;
+
+    const newPost = new Post({
+      author: req.user.id,
+      content: req.body.content || '', // Nội dung người dùng viết thêm khi share
+      originalPost: sharedId
+    });
+
+    await newPost.save();
+    
+    // Cập nhật số lượng share cho bài gốc (nếu muốn tracking)
+    await Post.findByIdAndUpdate(sharedId, { $push: { shares: req.user.id } });
+
+    res.json(newPost);
+  } catch (err) {
+    console.error(err);
     res.status(500).send('Server Error');
   }
 });

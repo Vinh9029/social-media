@@ -182,9 +182,6 @@ export default function PostDetail() {
               >
                 Reply
               </button>
-              <button className="hover:underline flex items-center gap-1">
-                <Share2 size={12} /> Share
-              </button>
             </div>
           </div>
         </div>
@@ -205,6 +202,7 @@ export default function PostDetail() {
 
   const myReaction = post.reactions?.find(r => r.user === user?.id)?.type;
   const rootComments = buildCommentTree(comments);
+  const isShared = !!post.originalPost;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-900 transition-colors">
@@ -218,10 +216,35 @@ export default function PostDetail() {
           <div className="p-6">
             <div className="flex items-start space-x-3 mb-4">
               <div onClick={() => navigate(`/profile/${post.author.id}`)} className="w-12 h-12 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer overflow-hidden">{post.author.avatar ? <img src={post.author.avatar} className="w-full h-full object-cover" /> : <User className="w-7 h-7 text-gray-600 dark:text-gray-400" />}</div>
-              <div><h3 onClick={() => navigate(`/profile/${post.author.id}`)} className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:underline">{post.author.name}</h3><p className="text-sm text-gray-500 dark:text-gray-400">@{post.author.username} • {formatDistanceToNow(post.timestamp)}</p></div>
+              <div>
+                <h3 onClick={() => navigate(`/profile/${post.author.id}`)} className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:underline">{post.author.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {isShared && <span className="ml-1 text-gray-500">• Đã chia sẻ một bài viết</span>}
+                </p>
+              </div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 text-lg whitespace-pre-wrap mb-4">{post.content}</p>
             
+            {/* Shared Post Content */}
+            {isShared && post.originalPost && (
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-4 bg-gray-50 dark:bg-slate-900/50 cursor-pointer" onClick={() => navigate(`/post/${post.originalPost?.id}`)}>
+                <div className="flex items-center gap-2 mb-2">
+                  <img src={post.originalPost.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.originalPost.author.name)}&background=random`} className="w-8 h-8 rounded-full" />
+                  <span className="font-bold text-gray-900 dark:text-white">{post.originalPost.author.name}</span>
+                  <span className="text-sm text-gray-500">@{post.originalPost.author.username}</span>
+                </div>
+                <p className="text-gray-800 dark:text-gray-200 mb-3">{post.originalPost.content}</p>
+                {post.originalPost.image && (
+                  <div className="rounded-lg overflow-hidden">
+                    <img src={post.originalPost.image} className="w-full h-auto object-cover max-h-[400px]" />
+                  </div>
+                )}
+              </div>
+            )}
+            {isShared && !post.originalPost && (
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-4 bg-gray-100 dark:bg-slate-800 text-gray-500 italic">Bài viết gốc đã bị xóa hoặc không tồn tại.</div>
+            )}
+
             {/* Hiển thị ảnh bài viết */}
             {post.image && (
               <div className="rounded-xl overflow-hidden mb-4 border border-gray-100 dark:border-slate-700">

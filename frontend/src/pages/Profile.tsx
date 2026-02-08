@@ -49,7 +49,8 @@ export default function Profile() {
             // Đảm bảo có id để dùng cho các chức năng follow/message
             setProfileUser({ ...data, id: data._id || data.id });
             // Check if following
-            if (currentUser && data.followers && (data.followers.includes(currentUser.id) || data.followers.includes(currentUser._id))) {
+            // Fix: Ensure ID comparison handles both string and ObjectId formats
+            if (currentUser && data.followers && data.followers.some((fid: any) => (fid._id || fid).toString() === currentUser.id)) {
               setIsFollowing(true);
             }
           } else {
@@ -200,6 +201,19 @@ export default function Profile() {
         const data = await res.json();
         setIsFollowing(data.isFollowing);
         showToast(data.msg === 'Followed' ? 'Đã theo dõi' : 'Đã hủy theo dõi', 'success');
+        
+        // Cập nhật số lượng follower ngay lập tức (Optimistic UI)
+        setProfileUser(prev => {
+          if (!prev) return null;
+          const currentFollowers = prev.followers || [];
+          let newFollowers;
+          if (data.isFollowing) {
+            newFollowers = [...currentFollowers, currentUser.id];
+          } else {
+            newFollowers = currentFollowers.filter(id => id !== currentUser.id);
+          }
+          return { ...prev, followers: newFollowers };
+        });
       }
     } catch (error) {
       console.error(error);
@@ -401,8 +415,8 @@ export default function Profile() {
               <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
                 <div className="flex items-center justify-around md:justify-start md:space-x-12 text-sm">
                   <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center"><span className="text-blue-600 dark:text-blue-400 font-semibold">{posts.length}</span></div><span className="text-gray-600 dark:text-gray-400">Posts</span></div>
-                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600 dark:text-green-400" /></div><span className="text-gray-600 dark:text-gray-400">0 Followers</span></div>
-                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600 dark:text-green-400" /></div><span className="text-gray-600 dark:text-gray-400">0 Following</span></div>
+                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600 dark:text-green-400" /></div><span className="text-gray-600 dark:text-gray-400">{profileUser.followers?.length || 0} Followers</span></div>
+                  <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center"><Users className="w-4 h-4 text-green-600 dark:text-green-400" /></div><span className="text-gray-600 dark:text-gray-400">{profileUser.following?.length || 0} Following</span></div>
                   <div className="flex items-center space-x-2"><div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center"><Heart className="w-4 h-4 text-red-600 dark:text-red-400" /></div><span className="text-gray-600 dark:text-gray-400">0 Likes</span></div>
                 </div>
               </div>

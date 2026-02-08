@@ -15,6 +15,7 @@ import Messages from './pages/Messages';
 import Saved from './pages/Saved';
 import Settings from './pages/Settings';
 import SearchPage from './pages/Search';
+import NotFound from './pages/NotFound';
 import ChatWidget from './components/ChatWidget';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -43,6 +44,7 @@ const MainLayout = () => {
           <Route path="/messages" element={<Messages />} />
           <Route path="/saved" element={<Saved />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       {!hideRightbar && <Rightbar />}
