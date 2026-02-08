@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  _id?: string;
   name: string;
   username: string;
   avatar: string;
@@ -31,9 +32,28 @@ export interface Comment {
   author: User;
   timestamp: string;
   postId: string;
-  postTitle?: string; // Dành cho trang
-  //  Admin
+  postTitle?: string;
   parentId?: string | null;
   likes?: string[];
   replies?: Comment[];
+}
+
+export interface Message {
+  _id: string;
+  sender: User;
+  recipient: User;
+  content: string;
+  createdAt: string;
+  read: boolean; // Trạng thái đã đọc
+}
+
+export interface Conversation {
+  partnerId: string;
+  username: string;
+  name: string;
+  avatar: string;
+  lastMessage: string;
+  timestamp: string;
+  read: boolean;
+  isSender: boolean;
 }
