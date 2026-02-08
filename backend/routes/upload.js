@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // Giới hạn 10MB (Tăng lên để hỗ trợ GIF nặng)
   fileFilter: function (req, file, cb) {
     const filetypes = /jpeg|jpg|png|gif|webp/;
     const mimetype = filetypes.test(file.mimetype);
