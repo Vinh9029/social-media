@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
 import Rightbar from './components/Rightbar';
@@ -22,11 +22,25 @@ import { ToastProvider } from './contexts/ToastContext';
 import { MessagesProvider } from './contexts/MessagesContext';
 
 const MainLayout = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const isProfilePage = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
   const isMessagesPage = location.pathname === '/messages';
   const isSearchPage = location.pathname === '/search';
   const hideRightbar = isProfilePage || isMessagesPage || isSearchPage;
+
+  // Xử lý OAuth Callback
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('token', token);
+      // Xóa token khỏi URL để đẹp hơn
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Reload để AuthContext cập nhật state user
+      window.location.reload();
+    }
+  }, [location]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex justify-center transition-colors duration-200">
