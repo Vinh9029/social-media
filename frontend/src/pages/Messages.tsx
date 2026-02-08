@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, Send, Search, MoreVertical, Phone, Video } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mail, Send, Search, MoreVertical, Phone, Video, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
@@ -18,6 +18,7 @@ const Messages = () => {
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [chatPartner, setChatPartner] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 1. Fetch danh sách cuộc trò chuyện
   useEffect(() => {
@@ -51,6 +52,7 @@ const Messages = () => {
           if (res.ok) {
             const data = await res.json();
             setCurrentMessages(data);
+            scrollToBottom();
           }
         } catch (error) {
           console.error("Error fetching messages:", error);
@@ -66,15 +68,29 @@ const Messages = () => {
     }
   }, [selectedChat, conversations]);
 
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   // Xử lý khi được chuyển hướng từ trang Profile (nút Nhắn tin)
   useEffect(() => {
     if (location.state?.startChat) {
       const partner = location.state.startChat;
-      setSelectedChat(partner.id);
-      setChatPartner(partner);
-      // Nếu chưa có trong list conversation, có thể thêm tạm vào UI nếu muốn
+      
+      // Kiểm tra xem đã có cuộc trò chuyện chưa
+      const existingConv = conversations.find(c => c.partnerId === partner.id);
+      
+      if (existingConv) {
+        setSelectedChat(existingConv.partnerId);
+      } else {
+        // Nếu chưa có, set state tạm để hiển thị UI chat rỗng
+        setSelectedChat(partner.id);
+        setChatPartner(partner);
+      }
     }
-  }, [location.state]);
+  }, [location.state, conversations]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !selectedChat) return;
@@ -96,6 +112,7 @@ const Messages = () => {
       if (res.ok) {
         const newMessage = await res.json();
         setCurrentMessages([...currentMessages, newMessage]);
+        scrollToBottom();
         setInput('');
         fetchConversations(); // Refresh list để cập nhật last message
       }
@@ -120,10 +137,10 @@ const Messages = () => {
   }
 
   return (
-    <div className="h-[calc(100vh)] w-full bg-white dark:bg-slate-800 flex transition-colors">
+    <div className="h-[calc(100vh-64px)] md:h-screen w-full bg-white dark:bg-slate-900 flex transition-colors overflow-hidden">
         
         {/* Sidebar List */}
-        <div className="w-[350px] border-r border-gray-100 dark:border-slate-700 flex flex-col bg-white dark:bg-slate-800">
+        <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] border-r border-gray-100 dark:border-slate-800 flex-col bg-white dark:bg-slate-900`}>
           <div className="p-4 border-b border-gray-100 dark:border-slate-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tin nhắn</h2>
             <div className="relative">
@@ -139,12 +156,12 @@ const Messages = () => {
                 <div 
                   key={conv.partnerId}
                   onClick={() => setSelectedChat(conv.partnerId)}
-                  className={`p-4 cursor-pointer transition-colors border-l-4 ${selectedChat === conv.partnerId ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-700/50'}`}
+                  className={`p-4 cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-slate-800/50 ${selectedChat === conv.partnerId ? 'bg-blue-50 dark:bg-blue-900/10 border-r-4 border-blue-600' : ''}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <img src={conv.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.name)}&background=random`} alt={conv.name} className="w-10 h-10 rounded-full object-cover" />
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full"></div>
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline">
@@ -163,11 +180,11 @@ const Messages = () => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-gray-50/30 dark:bg-slate-900/30">
+        <div className={`${!selectedChat ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-gray-50 dark:bg-slate-950`}>
           {!selectedChat ? (
              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-6">
-                 <Mail className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+                 <Mail className="w-10 h-10 text-blue-600 dark:text-blue-500" />
                </div>
                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Tin nhắn của bạn</h2>
                <p className="text-gray-500 dark:text-gray-400 max-w-xs mb-8">Chọn một cuộc trò chuyện hoặc bắt đầu cuộc trò chuyện mới.</p>
@@ -175,7 +192,9 @@ const Messages = () => {
           ) : (
           <>
           {/* Chat Header */}
-          <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800">
+          <div className="p-3 md:p-4 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shadow-sm z-10">
+            <div className="flex items-center gap-3">
+            <button onClick={() => setSelectedChat(null)} className="md:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300"><ArrowLeft size={20} /></button>
             <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleViewProfile}>
               <img 
                 src={chatPartner?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(chatPartner?.name || 'User')}&background=random`} 
@@ -189,30 +208,32 @@ const Messages = () => {
                 <p className="text-xs text-green-500 flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full"></span> Online</p>
               </div>
             </div>
+            </div>
             <div className="flex items-center gap-2 text-gray-500">
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full"><Phone size={20} /></button>
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full"><Video size={20} /></button>
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full"><MoreVertical size={20} /></button>
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><Phone size={20} /></button>
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><Video size={20} /></button>
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><MoreVertical size={20} /></button>
             </div>
           </div>
 
           {/* Messages List */}
-          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 bg-gray-50 dark:bg-slate-950 scroll-smooth">
             {currentMessages.length === 0 ? (
               <div className="text-center text-gray-400 mt-10">Bắt đầu cuộc trò chuyện...</div>
             ) : (
               currentMessages.map(msg => (
                 <div key={msg._id} className={`flex ${msg.sender?._id === user.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`px-4 py-2 rounded-2xl text-sm max-w-[70%] shadow-sm ${msg.sender?._id === user.id ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-tl-none'}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[75%] md:max-w-[60%] shadow-sm break-words ${msg.sender?._id === user.id ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-bl-none border border-gray-100 dark:border-slate-700'}`}>
                     {msg.content}
                   </div>
                 </div>
               ))
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
-          <div className="p-4 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700">
+          <div className="p-3 md:p-4 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -220,7 +241,7 @@ const Messages = () => {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
-                className="flex-1 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white text-sm rounded-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="flex-1 bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white text-sm rounded-full px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
               />
               <button 
                 className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 active:scale-95" 

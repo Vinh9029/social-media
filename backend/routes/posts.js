@@ -28,16 +28,19 @@ router.get('/', async (req, res) => {
         avatar: ''
       };
 
+      // Tính toán reaction của user hiện tại (nếu có login, nhưng ở route public này ta chỉ trả về tổng quan)
+      // Logic chi tiết hơn sẽ nằm ở frontend hoặc route authenticated
+
       return {
         id: post._id,
         author: authorData,
         content: post.content,
         image: post.image_url,
-        likes: post.likes.length,
+        likes: post.reactions ? post.reactions.length : 0, // Tương thích ngược
+        reactions: post.reactions || [],
         comments: commentsCount,
         shares: 0,
         timestamp: post.createdAt,
-        liked: false,
         title: post.title
       };
     }));
@@ -72,11 +75,11 @@ router.post('/', auth, async (req, res) => {
         },
         content: post.content,
         image: post.image_url,
-        likes: post.likes.length,
+        likes: 0,
+        reactions: [],
         comments: 0,
         shares: 0,
         timestamp: post.createdAt,
-        liked: false,
         title: post.title
     });
   } catch (err) {
@@ -86,20 +89,35 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Toggle Like
-router.post('/:id/like', auth, async (req, res) => {
+router.post('/:id/reaction', auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ msg: 'Post not found' });
 
-    if (post.likes.includes(req.user.id)) {
-      post.likes = post.likes.filter(id => id.toString() !== req.user.id);
+    const { type } = req.body; // 'like', 'love', 'haha', etc.
+    const userId = req.user.id;
+
+    // Tìm xem user đã react chưa
+    const existingIndex = post.reactions.findIndex(r => r.user.toString() === userId);
+
+    if (existingIndex !== -1) {
+      // Nếu đã react
+      if (post.reactions[existingIndex].type === type) {
+        // Nếu cùng loại -> Xóa (Toggle off)
+        post.reactions.splice(existingIndex, 1);
+      } else {
+        // Khác loại -> Cập nhật loại mới
+        post.reactions[existingIndex].type = type;
+      }
     } else {
-      post.likes.unshift(req.user.id);
+      // Chưa react -> Thêm mới
+      post.reactions.push({ user: userId, type: type || 'like' });
     }
 
     await post.save();
-    res.json(post.likes); 
+    res.json(post.reactions); 
   } catch (err) {
+    console.error(err);
     res.status(500).send('Server Error');
   }
 });
@@ -129,11 +147,11 @@ router.get('/:id', async (req, res) => {
       author: authorData,
       content: post.content,
       image: post.image_url,
-      likes: post.likes.length,
+      likes: post.reactions ? post.reactions.length : 0,
+      reactions: post.reactions || [],
       comments: commentsCount,
       shares: 0,
       timestamp: post.createdAt,
-      liked: false,
       title: post.title
     });
   } catch (err) {

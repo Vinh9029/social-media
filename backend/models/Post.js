@@ -11,7 +11,11 @@ const PostSchema = new mongoose.Schema({
   title: { type: String }, // Optional title
   
   // Interactions
-  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // Thay đổi từ mảng ID sang mảng Object để lưu loại reaction
+  reactions: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    type: { type: String, enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'], default: 'like' }
+  }],
   shares: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   
   // Comments sẽ được query từ collection Comment, nhưng có thể cache số lượng nếu cần

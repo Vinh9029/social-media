@@ -1,42 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 
-// Cấu hình Storage cho Multer
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Tạo thư mục riêng cho từng user: uploads/users/{userId}
-    const userDir = path.join(__dirname, '../../frontend/public/uploads/users', req.user.id);
-    
-    if (!fs.existsSync(userDir)){
-        fs.mkdirSync(userDir, { recursive: true });
-    }
-    cb(null, userDir);
-  },
-  filename: function (req, file, cb) {
-    // Tên file: timestamp-originalName
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+// Cấu hình Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Giới hạn 10MB (Tăng lên để hỗ trợ GIF nặng)
-  fileFilter: function (req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif|webp/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Chỉ chấp nhận file ảnh!'));
-  }
+// Cấu hình Storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'social-app',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp'],
+  },
 });
+
+const upload = multer({ storage: storage });
 
 // Upload Avatar Route
 router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
@@ -45,9 +31,8 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
       return res.status(400).json({ message: 'Vui lòng chọn file ảnh' });
     }
 
-    // Tạo đường dẫn URL tương đối để frontend truy cập từ thư mục public
-    // Ví dụ: /uploads/users/userId/filename.jpg
-    const avatarUrl = `/uploads/users/${req.user.id}/${req.file.filename}`;
+    // Cloudinary trả về đường dẫn ảnh trong req.file.path
+    const avatarUrl = req.file.path;
 
     // Cập nhật avatar cho user trong DB
     await User.findByIdAndUpdate(req.user.id, { avatar_url: avatarUrl });
@@ -67,7 +52,7 @@ router.post('/cover', auth, upload.single('cover'), async (req, res) => {
     }
 
     // Tạo đường dẫn URL
-    const coverUrl = `/uploads/users/${req.user.id}/${req.file.filename}`;
+    const coverUrl = req.file.path;
 
     // Cập nhật cover_url cho user trong DB
     await User.findByIdAndUpdate(req.user.id, { cover_url: coverUrl });
@@ -87,7 +72,7 @@ router.post('/post', auth, upload.single('image'), async (req, res) => {
     }
 
     // Tạo đường dẫn URL
-    const imageUrl = `/uploads/users/${req.user.id}/${req.file.filename}`;
+    const imageUrl = req.file.path;
 
     // Trả về URL để frontend dùng tạo bài viết
     res.json({ url: imageUrl, message: 'Upload thành công' });
@@ -100,13 +85,9 @@ router.post('/post', auth, upload.single('image'), async (req, res) => {
 // Lấy danh sách ảnh trong bộ sưu tập của User
 router.get('/collection', auth, async (req, res) => {
   try {
-    const userDir = path.join(__dirname, '../../frontend/public/uploads/users', req.user.id);
-    if (!fs.existsSync(userDir)) {
-      return res.json([]);
-    }
-    const files = fs.readdirSync(userDir);
-    const urls = files.map(file => `/uploads/users/${req.user.id}/${file}`);
-    res.json(urls);
+    // Cloudinary không hỗ trợ list file đơn giản qua API public này
+    // Trả về mảng rỗng hoặc cần implement Admin API nếu muốn
+    res.json([]);
   } catch (err) {
     res.status(500).json({ message: 'Lỗi lấy bộ sưu tập' });
   }

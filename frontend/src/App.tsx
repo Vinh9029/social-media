@@ -14,6 +14,7 @@ import Notifications from './pages/Notifications';
 import Messages from './pages/Messages';
 import Saved from './pages/Saved';
 import Settings from './pages/Settings';
+import SearchPage from './pages/Search';
 import ChatWidget from './components/ChatWidget';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -36,6 +37,7 @@ const MainLayout = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/post/:postId" element={<PostDetail />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/messages" element={<Messages />} />

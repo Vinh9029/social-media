@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Hash, Bell, Mail, Bookmark, User, Settings, LogOut, LogIn } from 'lucide-react';
+import { Home, Hash, Bell, Mail, Bookmark, User, Settings, LogOut, LogIn, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,6 +11,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { icon: Home, label: 'Trang chủ', path: '/' },
+    { icon: Search, label: 'Tìm kiếm', path: '/search' },
     { icon: Hash, label: 'Khám phá', path: '/explore' },
     { icon: Bell, label: 'Thông báo', path: '/notifications' },
     { icon: Mail, label: 'Tin nhắn', path: '/messages' },

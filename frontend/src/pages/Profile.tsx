@@ -28,6 +28,7 @@ export default function Profile() {
   const [avatarTab, setAvatarTab] = useState<'upload' | 'collection'>('upload');
   const [collection, setCollection] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const navigate = useNavigate();
 
   // Xác định xem đây có phải profile của chính mình không
@@ -45,7 +46,12 @@ export default function Profile() {
           const res = await fetch(`${API_URL}/api/auth/profile/${userId}`);
           if (res.ok) {
             const data = await res.json();
-            setProfileUser(data);
+            // Đảm bảo có id để dùng cho các chức năng follow/message
+            setProfileUser({ ...data, id: data._id || data.id });
+            // Check if following
+            if (currentUser && data.followers && (data.followers.includes(currentUser.id) || data.followers.includes(currentUser._id))) {
+              setIsFollowing(true);
+            }
           } else {
             showToast('Không tìm thấy người dùng', 'error');
             navigate('/');
@@ -181,6 +187,29 @@ export default function Profile() {
     setIsEditing(false);
   };
 
+  const handleFollow = async () => {
+    if (!profileUser) return;
+    if (!currentUser) { showToast('Vui lòng đăng nhập', 'error'); return; }
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/users/follow/${profileUser.id}`, {
+        method: 'PUT',
+        headers: { 'x-auth-token': token || '' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsFollowing(data.isFollowing);
+        showToast(data.msg === 'Followed' ? 'Đã theo dõi' : 'Đã hủy theo dõi', 'success');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleMessage = () => {
+    navigate('/messages', { state: { startChat: profileUser } });
+  };
+
   if (!currentUser && isOwnProfile) {
     return (
       <div className="max-w-2xl mx-auto w-full py-8 px-4 text-center">
@@ -299,15 +328,20 @@ export default function Profile() {
                     {!isEditing ? (
                       <>
                         {!isOwnProfile && (
-                          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition shadow-sm shadow-blue-600/20 active:scale-95">
-                            <UserPlus size={18} />
-                            <span>Theo dõi</span>
-                          </button>
+                          <>
+                            <button 
+                              onClick={handleFollow}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition shadow-sm active:scale-95 ${isFollowing ? 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-slate-700 dark:text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'}`}
+                            >
+                              <UserPlus size={18} />
+                              <span>{isFollowing ? 'Đang theo dõi' : 'Theo dõi'}</span>
+                            </button>
+                            <button onClick={handleMessage} className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition active:scale-95">
+                              <MessageSquare size={18} />
+                              <span>Nhắn tin</span>
+                            </button>
+                          </>
                         )}
-                        <button onClick={() => navigate('/messages')} className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition active:scale-95">
-                          <MessageSquare size={18} />
-                          <span>Nhắn tin</span>
-                        </button>
                         {isOwnProfile && (
                           <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition active:scale-95">
                             <Edit2 size={18} />

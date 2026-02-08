@@ -22,7 +22,7 @@ export interface Post {
   comments: number;
   shares: number;
   timestamp: string;
-  liked?: boolean;
+  reactions?: { user: string; type: string }[];
   title?: string;
 }
 

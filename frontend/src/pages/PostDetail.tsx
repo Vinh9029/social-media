@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, MessageCircle, ArrowLeft, User, Send, X, Share2 } from 'lucide-react';
+import { ArrowLeft, User, Send, X, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from '../utils/dateUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment } from '../types';
 import { API_URL } from '../config';
+import ReactionBar from '../components/ReactionBar';
 
 export default function PostDetail() {
   const { postId } = useParams();
@@ -49,17 +50,18 @@ export default function PostDetail() {
     }
   }, [postId]);
 
-  const handleLike = async () => {
+  const handleReaction = async (type: string) => {
     if (!post || !user) return;
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_URL}/api/posts/${post.id}/like`, {
+      const res = await fetch(`${API_URL}/api/posts/${post.id}/reaction`, {
         method: 'POST',
-        headers: { 'x-auth-token': token || '' }
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token || '' },
+        body: JSON.stringify({ type })
       });
       if (res.ok) {
-        const likes = await res.json();
-        setPost({ ...post, likes: likes.length, liked: !post.liked });
+        const updatedReactions = await res.json();
+        setPost({ ...post, reactions: updatedReactions, likes: updatedReactions.length });
       }
     } catch (err) {
       console.error(err);
@@ -201,6 +203,7 @@ export default function PostDetail() {
   if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Loading...</div>;
   if (!post) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Post not found</div>;
 
+  const myReaction = post.reactions?.find(r => r.user === user?.id)?.type;
   const rootComments = buildCommentTree(comments);
 
   return (
@@ -218,11 +221,21 @@ export default function PostDetail() {
               <div><h3 onClick={() => navigate(`/profile/${post.author.id}`)} className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:underline">{post.author.name}</h3><p className="text-sm text-gray-500 dark:text-gray-400">@{post.author.username} • {formatDistanceToNow(post.timestamp)}</p></div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 text-lg whitespace-pre-wrap mb-4">{post.content}</p>
-            <div className="flex items-center space-x-6 pt-4 border-t border-gray-100 dark:border-slate-700">
-              <button onClick={handleLike} className={`flex items-center space-x-2 transition ${post.liked ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}><Heart className={`w-6 h-6 ${post.liked ? 'fill-current' : ''}`} /><span className="font-medium">{post.likes}</span></button>
-              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400"><MessageCircle className="w-6 h-6" /><span className="font-medium">{comments.length}</span></div>
-              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400"><Share2 className="w-6 h-6" /><span className="font-medium">{post.shares}</span></div>
-            </div>
+            
+            {/* Hiển thị ảnh bài viết */}
+            {post.image && (
+              <div className="rounded-xl overflow-hidden mb-4 border border-gray-100 dark:border-slate-700">
+                <img src={post.image} alt="Post content" className="w-full h-auto object-cover max-h-[600px]" />
+              </div>
+            )}
+
+            <ReactionBar 
+              likes={post.likes} 
+              comments={comments.length} 
+              shares={post.shares}
+              userReaction={myReaction}
+              onReaction={handleReaction}
+            />
           </div>
 
           <div className="border-t border-gray-200 dark:border-slate-700 p-6 bg-gray-50 dark:bg-slate-800/50">
