@@ -8,21 +8,29 @@ const auth = require('../middleware/auth');
 router.get('/', async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate('user', 'username full_name avatar_url')
+      .populate('author', 'username full_name avatar_url')
       .sort({ createdAt: -1 });
 
     // Enrich posts with comment counts and map to Frontend structure
     const postsWithCounts = await Promise.all(posts.map(async (post) => {
       const commentsCount = await Comment.countDocuments({ post: post._id });
       
+      // Kiểm tra an toàn nếu author bị null (ví dụ user đã bị xóa)
+      const authorData = post.author ? {
+        id: post.author._id,
+        name: post.author.full_name,
+        username: post.author.username,
+        avatar: post.author.avatar_url
+      } : {
+        id: 'unknown',
+        name: 'Người dùng ẩn danh',
+        username: 'unknown',
+        avatar: ''
+      };
+
       return {
         id: post._id,
-        author: {
-          id: post.user._id,
-          name: post.user.full_name,
-          username: post.user.username,
-          avatar: post.user.avatar_url
-        },
+        author: authorData,
         content: post.content,
         image: post.image_url,
         likes: post.likes.length,
@@ -45,22 +53,22 @@ router.get('/', async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const newPost = new Post({
-      user: req.user.id,
+      author: req.user.id,
       title: req.body.title,
       content: req.body.content,
       image_url: req.body.image_url
     });
 
     const post = await newPost.save();
-    await post.populate('user', 'username full_name avatar_url');
+    await post.populate('author', 'username full_name avatar_url');
 
     res.json({
         id: post._id,
         author: {
-          id: post.user._id,
-          name: post.user.full_name,
-          username: post.user.username,
-          avatar: post.user.avatar_url
+          id: post.author._id,
+          name: post.author.full_name,
+          username: post.author.username,
+          avatar: post.author.avatar_url
         },
         content: post.content,
         image: post.image_url,
@@ -99,19 +107,26 @@ router.post('/:id/like', auth, async (req, res) => {
 // Get single post by ID
 router.get('/:id', async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate('user', 'username full_name avatar_url');
+    const post = await Post.findById(req.params.id).populate('author', 'username full_name avatar_url');
     if (!post) return res.status(404).json({ msg: 'Post not found' });
     
     const commentsCount = await Comment.countDocuments({ post: post._id });
     
+    const authorData = post.author ? {
+      id: post.author._id,
+      name: post.author.full_name,
+      username: post.author.username,
+      avatar: post.author.avatar_url
+    } : {
+      id: 'unknown',
+      name: 'Unknown',
+      username: 'unknown',
+      avatar: ''
+    };
+
     res.json({
       id: post._id,
-      author: {
-        id: post.user._id,
-        name: post.user.full_name,
-        username: post.user.username,
-        avatar: post.user.avatar_url
-      },
+      author: authorData,
       content: post.content,
       image: post.image_url,
       likes: post.likes.length,
@@ -132,23 +147,27 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/comments', async (req, res) => {
   try {
     const comments = await Comment.find({ post: req.params.id })
-      .populate('user', 'username full_name avatar_url')
+      .populate('author', 'username full_name avatar_url')
       .sort({ createdAt: 1 });
       
-    res.json(comments.map(comment => ({
-      id: comment._id,
-      content: comment.content,
-      author: {
-        id: comment.user._id,
-        name: comment.user.full_name,
-        username: comment.user.username,
-        avatar: comment.user.avatar_url
-      },
-      timestamp: comment.createdAt,
-      postId: comment.post,
-      parentId: comment.parentId || null,
-      likes: comment.likes || []
-    })));
+    res.json(comments.map(comment => {
+      const authorData = comment.author ? {
+        id: comment.author._id,
+        name: comment.author.full_name,
+        username: comment.author.username,
+        avatar: comment.author.avatar_url
+      } : { id: 'unknown', name: 'Unknown', username: 'unknown', avatar: '' };
+
+      return {
+        id: comment._id,
+        content: comment.content,
+        author: authorData,
+        timestamp: comment.createdAt,
+        postId: comment.post,
+        parentId: comment.parentId || null,
+        likes: comment.likes || []
+      };
+    }));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -160,7 +179,7 @@ router.post('/:id/comments', auth, async (req, res) => {
   try {
     const newComment = new Comment({
       content: req.body.content,
-      user: req.user.id,
+      author: req.user.id,
       post: req.params.id,
       parentId: req.body.parentId || null,
       likes: []
@@ -201,7 +220,7 @@ router.delete('/comments/:id', auth, async (req, res) => {
     const comment = await Comment.findById(req.params.id);
     if (!comment) return res.status(404).json({ msg: 'Comment not found' });
 
-    if (comment.user.toString() !== req.user.id) {
+    if (comment.author.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'User not authorized' });
     }
 

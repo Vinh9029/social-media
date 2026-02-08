@@ -27,7 +27,20 @@ const Feed = () => {
         const res = await fetch(`${API_URL}/api/posts`);
         if (res.ok) {
           const data = await res.json();
-          setPosts(data);
+          // Map _id to id để đảm bảo tương thích với PostCard
+          const formattedData = data.map((p: any) => ({
+            ...p,
+            id: p._id || p.id,
+            image: p.image || p.image_url,
+            author: p.author ? { 
+              ...p.author, 
+              id: p.author._id || p.author.id,
+              name: p.author.name || p.author.full_name || 'Unknown User',
+              avatar: p.author.avatar || p.author.avatar_url
+            } : { id: 'unknown', name: 'Unknown User', username: 'unknown', avatar: '' },
+            timestamp: p.timestamp || p.createdAt || new Date().toISOString()
+          }));
+          setPosts(formattedData);
         }
       } catch (error) {
         console.error('Error fetching posts:', error);
@@ -99,7 +112,33 @@ const Feed = () => {
       if (!postRes.ok) throw new Error('Lỗi đăng bài');
       
       const newPost = await postRes.json();
-      setPosts([newPost, ...posts]); // Thêm bài mới lên đầu
+      
+      // Format lại dữ liệu bài viết mới để khớp với cấu trúc PostCard
+      const formattedNewPost = {
+        ...newPost,
+        id: newPost._id || newPost.id,
+        image: newPost.image || newPost.image_url,
+        // Nếu backend trả về author là string (ID) hoặc chưa populate đủ
+        author: (newPost.author && typeof newPost.author === 'object') 
+          ? { 
+              ...newPost.author, 
+              id: newPost.author._id || newPost.author.id,
+              name: newPost.author.name || newPost.author.full_name || user?.name,
+              avatar: newPost.author.avatar || newPost.author.avatar_url || user?.avatar
+            }
+          : {
+              id: user.id,
+              name: user.name,
+              username: user.username,
+              avatar: user.avatar
+            },
+        timestamp: newPost.timestamp || newPost.createdAt || new Date().toISOString(),
+        likes: 0,
+        comments: 0,
+        shares: 0
+      };
+
+      setPosts([formattedNewPost, ...posts]); // Thêm bài mới lên đầu
       
       // Reset form
       setContent('');

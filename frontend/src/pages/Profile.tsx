@@ -73,9 +73,21 @@ export default function Profile() {
       // Fetch user's posts
       fetch(`${API_URL}/api/posts`)
         .then(res => res.json())
-        .then((data: Post[]) => {
+        .then((data: any[]) => {
+          // Map _id to id
+          const formattedData = data.map((p: any) => ({
+            ...p,
+            id: p._id || p.id,
+            image: p.image || p.image_url,
+            author: p.author ? { 
+              ...p.author, 
+              id: p.author._id || p.author.id,
+              name: p.author.name || p.author.full_name || 'Unknown User',
+              avatar: p.author.avatar || p.author.avatar_url
+            } : { id: 'unknown', name: 'Unknown User', username: 'unknown', avatar: '' }
+          }));
           // Filter posts by profile user
-          const myPosts = data.filter(p => p.author.id === profileUser.id);
+          const myPosts = formattedData.filter((p: Post) => p.author.id === profileUser.id);
           setPosts(myPosts);
         })
         .catch(err => console.error(err));

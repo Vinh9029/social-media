@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
 import { API_URL } from '../config';
+import { formatDistanceToNow } from '../utils/dateUtils';
 
 interface PostCardProps {
   post: Post;
@@ -85,7 +86,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost }) => {
           />
           <div>
             <h3 className="font-bold text-gray-900 dark:text-white text-sm hover:underline" onClick={handleProfileClick}>{post.author.name}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">@{post.author.username} • {post.timestamp}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">@{post.author.username} • {formatDistanceToNow(post.timestamp)}</p>
           </div>
         </div>
         <button className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors">

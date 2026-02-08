@@ -24,14 +24,27 @@ export default function PostDetail() {
           if (!res.ok) throw new Error('Post not found');
           return res.json();
         })
-        .then(data => setPost(data))
+        .then(data => {
+          setPost({
+            ...data,
+            id: data._id || data.id,
+            author: data.author ? { ...data.author, id: data.author._id || data.author.id } : { id: 'unknown', name: 'Unknown', username: 'unknown', avatar: '' }
+          });
+        })
         .catch(err => console.error(err))
         .finally(() => setLoading(false));
 
       // Fetch Comments
       fetch(`${API_URL}/api/posts/${postId}/comments`)
         .then(res => res.json())
-        .then(data => setComments(data))
+        .then((data: any[]) => {
+          const formattedComments = data.map((c: any) => ({
+            ...c,
+            id: c._id || c.id,
+            author: c.author ? { ...c.author, id: c.author._id || c.author.id } : { id: 'unknown', name: 'Unknown', username: 'unknown', avatar: '' }
+          }));
+          setComments(formattedComments);
+        })
         .catch(err => console.error(err));
     }
   }, [postId]);
@@ -98,7 +111,7 @@ export default function PostDetail() {
         // Enrich comment with current user info for display
         const commentWithUser: Comment = {
           ...savedComment,
-          id: savedComment._id,
+          id: savedComment._id || savedComment.id,
           author: user,
           timestamp: new Date().toISOString(),
           postId: postId || '',

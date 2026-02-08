@@ -21,12 +21,15 @@ import { MessagesProvider } from './contexts/MessagesContext';
 
 const MainLayout = () => {
   const location = useLocation();
-  const isProfilePage = location.pathname === '/profile';
+  const isProfilePage = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
+  const isMessagesPage = location.pathname === '/messages';
+  const isSearchPage = location.pathname === '/search';
+  const hideRightbar = isProfilePage || isMessagesPage || isSearchPage;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex justify-center transition-colors duration-200">
       <Sidebar />
-      <main className={`flex-1 w-full border-x border-gray-100 dark:border-slate-800 min-h-screen ${isProfilePage ? 'max-w-4xl' : 'max-w-2xl'}`}>
+      <main className={`flex-1 w-full border-x border-gray-100 dark:border-slate-800 min-h-screen ${hideRightbar ? 'max-w-5xl' : 'max-w-2xl'}`}>
         <Routes>
           <Route path="/" element={<Feed />} />
           <Route path="/admin" element={<Admin />} />
@@ -40,8 +43,8 @@ const MainLayout = () => {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
-      {!isProfilePage && <Rightbar />}
-      <ChatWidget />
+      {!hideRightbar && <Rightbar />}
+      {!isMessagesPage && <ChatWidget />}
     </div>
   );
 };
