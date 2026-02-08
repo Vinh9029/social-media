@@ -65,6 +65,11 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost }) => {
     navigate(`/post/${post.id}`);
   };
 
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/profile/${post.author.id}`);
+  };
+
   return (
     <div 
       onClick={handleNavigate}
@@ -76,9 +81,10 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost }) => {
             src={post.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author.name)}&background=random`}
             alt={post.author.name}
             className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-50 dark:ring-slate-700"
+            onClick={handleProfileClick}
           />
           <div>
-            <h3 className="font-bold text-gray-900 dark:text-white text-sm hover:underline" onClick={(e) => e.stopPropagation()}>{post.author.name}</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white text-sm hover:underline" onClick={handleProfileClick}>{post.author.name}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">@{post.author.username} • {post.timestamp}</p>
           </div>
         </div>

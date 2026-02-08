@@ -141,7 +141,7 @@ export default function PostDetail() {
     return (
       <div className={`flex flex-col ${depth > 0 ? 'ml-10 mt-3' : 'mt-4'}`}>
         <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div onClick={() => navigate(`/profile/${comment.author.id}`)} className="w-8 h-8 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer">
             {comment.author.avatar ? (
               <img src={comment.author.avatar} alt={comment.author.name} className="w-full h-full object-cover" />
             ) : (
@@ -150,7 +150,7 @@ export default function PostDetail() {
           </div>
           <div className="flex-1">
             <div className="bg-gray-100 dark:bg-slate-700 rounded-2xl px-4 py-2 inline-block transition-colors">
-              <div className="font-semibold text-sm text-gray-900 dark:text-white">{comment.author.name}</div>
+              <div onClick={() => navigate(`/profile/${comment.author.id}`)} className="font-semibold text-sm text-gray-900 dark:text-white cursor-pointer hover:underline">{comment.author.name}</div>
               <p className="text-gray-800 dark:text-gray-200 text-sm whitespace-pre-wrap">{comment.content}</p>
             </div>
             <div className="flex items-center gap-4 mt-1 ml-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -201,8 +201,8 @@ export default function PostDetail() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200/50 dark:border-slate-700 overflow-hidden transition-colors">
           <div className="p-6">
             <div className="flex items-start space-x-3 mb-4">
-              <div className="w-12 h-12 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center"><User className="w-7 h-7 text-gray-600 dark:text-gray-400" /></div>
-              <div><h3 className="font-semibold text-gray-900 dark:text-white text-lg">{post.author.name}</h3><p className="text-sm text-gray-500 dark:text-gray-400">@{post.author.username} • {formatDistanceToNow(post.timestamp)}</p></div>
+              <div onClick={() => navigate(`/profile/${post.author.id}`)} className="w-12 h-12 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer overflow-hidden">{post.author.avatar ? <img src={post.author.avatar} className="w-full h-full object-cover" /> : <User className="w-7 h-7 text-gray-600 dark:text-gray-400" />}</div>
+              <div><h3 onClick={() => navigate(`/profile/${post.author.id}`)} className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:underline">{post.author.name}</h3><p className="text-sm text-gray-500 dark:text-gray-400">@{post.author.username} • {formatDistanceToNow(post.timestamp)}</p></div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 text-lg whitespace-pre-wrap mb-4">{post.content}</p>
             <div className="flex items-center space-x-6 pt-4 border-t border-gray-100 dark:border-slate-700">

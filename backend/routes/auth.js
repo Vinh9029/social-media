@@ -103,6 +103,33 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// Get Public User Profile by ID
+router.get('/profile/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      email: user.email, 
+      name: user.full_name,
+      role: user.role,
+      avatar: user.avatar_url,
+      bio: user.bio,
+      cover: user.cover_url,
+      github: user.github,
+      facebook: user.facebook,
+      linkedin: user.linkedin
+    };
+    res.json(userResponse);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') return res.status(404).json({ message: 'User not found' });
+    res.status(500).send('Server error');
+  }
+});
+
 // Change Password
 router.put('/change-password', auth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;

@@ -3,12 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import PostCard from '../components/PostCard';
 import { User, Edit2, Save, X, Users, Heart, Camera, Upload, Image as ImageIcon, Github, Facebook, Linkedin, UserPlus, MessageSquare } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Post } from '../types';
+import { useNavigate, Link, useParams } from 'react-router-dom';
+import { Post, User as UserType } from '../types';
 import { API_URL } from '../config';
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user: currentUser, updateProfile } = useAuth();
+  const { userId } = useParams(); // Lấy ID từ URL
   const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -20,6 +21,8 @@ export default function Profile() {
     facebook: '',
     linkedin: '',
   });
+  
+  const [profileUser, setProfileUser] = useState<UserType | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarTab, setAvatarTab] = useState<'upload' | 'collection'>('upload');
@@ -27,28 +30,57 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
+  // Xác định xem đây có phải profile của chính mình không
+  // Nếu không có userId trên URL HOẶC userId trùng với ID của người đang đăng nhập
+  const isOwnProfile = !userId || (currentUser && userId === currentUser.id);
+
   useEffect(() => {
-    if (user) {
+    const fetchProfileData = async () => {
+      if (isOwnProfile) {
+        // Xem profile chính mình
+        setProfileUser(currentUser);
+      } else if (userId) {
+        // Xem profile người khác
+        try {
+          const res = await fetch(`${API_URL}/api/auth/profile/${userId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setProfileUser(data);
+          } else {
+            showToast('Không tìm thấy người dùng', 'error');
+            navigate('/');
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+
+    fetchProfileData();
+  }, [userId, currentUser, isOwnProfile, navigate]);
+
+  useEffect(() => {
+    if (profileUser) {
       setEditForm({
-        username: user.username || '',
-        name: user.name || '',
-        bio: user.bio || '',
-        avatar: user.avatar || '',
-        github: user.github || '',
-        facebook: user.facebook || '',
-        linkedin: user.linkedin || '',
+        username: profileUser.username || '',
+        name: profileUser.name || '',
+        bio: profileUser.bio || '',
+        avatar: profileUser.avatar || '',
+        github: profileUser.github || '',
+        facebook: profileUser.facebook || '',
+        linkedin: profileUser.linkedin || '',
       });
       // Fetch user's posts
       fetch(`${API_URL}/api/posts`)
         .then(res => res.json())
         .then((data: Post[]) => {
-          // Filter posts by current user
-          const myPosts = data.filter(p => p.author.id === user.id);
+          // Filter posts by profile user
+          const myPosts = data.filter(p => p.author.id === profileUser.id);
           setPosts(myPosts);
         })
         .catch(err => console.error(err));
     }
-  }, [user]);
+  }, [profileUser]);
 
   const fetchCollection = async () => {
     try {
@@ -137,7 +169,7 @@ export default function Profile() {
     setIsEditing(false);
   };
 
-  if (!user) {
+  if (!currentUser && isOwnProfile) {
     return (
       <div className="max-w-2xl mx-auto w-full py-8 px-4 text-center">
         <div className="bg-white dark:bg-slate-800 rounded-xl p-12 shadow-sm border border-gray-100 dark:border-slate-700 transition-colors">
@@ -150,6 +182,8 @@ export default function Profile() {
       </div>
     );
   }
+
+  if (!profileUser) return <div className="text-center py-10">Đang tải...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-900 transition-colors">
@@ -207,37 +241,43 @@ export default function Profile() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200/50 dark:border-slate-700 overflow-hidden mb-8 transition-colors">
           {/* Cover Image Section */}
           <div className="relative h-48 md:h-64 bg-gradient-to-r from-blue-500 to-indigo-600 group">
-            {user.cover && (
-              <img src={user.cover} alt="Cover" className="w-full h-full object-cover" />
+            {profileUser.cover && (
+              <img src={profileUser.cover} alt="Cover" className="w-full h-full object-cover" />
             )}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
             
-            <button 
-              onClick={() => document.getElementById('cover-upload')?.click()}
-              className="absolute bottom-4 right-4 bg-black/30 hover:bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all opacity-0 group-hover:opacity-100"
-            >
-              <Camera size={18} />
-              <span>Đổi ảnh bìa</span>
-            </button>
-            <input type="file" id="cover-upload" className="hidden" accept="image/*" onChange={handleCoverUpload} />
+            {isOwnProfile && (
+              <>
+                <button 
+                  onClick={() => document.getElementById('cover-upload')?.click()}
+                  className="absolute bottom-4 right-4 z-20 bg-black/30 hover:bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <Camera size={18} />
+                  <span>Đổi ảnh bìa</span>
+                </button>
+                <input type="file" id="cover-upload" className="hidden" accept="image/*" onChange={handleCoverUpload} />
+              </>
+            )}
           </div>
 
           <div className="px-6 pb-6">
             <div className="flex flex-col md:flex-row items-center md:items-end -mt-16 mb-4 relative">
               {/* Avatar */}
-              <div className="relative group cursor-pointer shrink-0 z-10" onClick={() => setShowAvatarModal(true)}>
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-32 h-32 rounded-full border-4 border-white dark:border-slate-800 object-cover group-hover:opacity-90 transition-opacity shadow-md" />
+              <div className={`relative group shrink-0 z-10 ${isOwnProfile ? 'cursor-pointer' : ''}`} onClick={() => isOwnProfile && setShowAvatarModal(true)}>
+                {profileUser.avatar ? (
+                  <img src={profileUser.avatar} alt={profileUser.name} className="w-32 h-32 rounded-full border-4 border-white dark:border-slate-800 object-cover group-hover:opacity-90 transition-opacity shadow-md" />
                 ) : (
                   <div className="w-32 h-32 bg-gray-300 dark:bg-slate-700 rounded-full border-4 border-white dark:border-slate-800 flex items-center justify-center group-hover:bg-gray-400 dark:group-hover:bg-slate-600 transition-colors shadow-md">
                     <User className="w-16 h-16 text-gray-600 dark:text-gray-400" />
                   </div>
                 )}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-black/50 rounded-full p-2">
-                    <Camera className="w-6 h-6 text-white" />
+                {isOwnProfile && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-black/50 rounded-full p-2">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Info & Actions */}
@@ -246,18 +286,22 @@ export default function Profile() {
                 <div className="flex gap-3">
                     {!isEditing ? (
                       <>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition shadow-sm shadow-blue-600/20 active:scale-95">
-                          <UserPlus size={18} />
-                          <span>Theo dõi</span>
-                        </button>
+                        {!isOwnProfile && (
+                          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition shadow-sm shadow-blue-600/20 active:scale-95">
+                            <UserPlus size={18} />
+                            <span>Theo dõi</span>
+                          </button>
+                        )}
                         <button onClick={() => navigate('/messages')} className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition active:scale-95">
                           <MessageSquare size={18} />
                           <span>Nhắn tin</span>
                         </button>
-                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition active:scale-95">
-                          <Edit2 size={18} />
-                          <span>Sửa hồ sơ</span>
-                        </button>
+                        {isOwnProfile && (
+                          <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition active:scale-95">
+                            <Edit2 size={18} />
+                            <span>Sửa hồ sơ</span>
+                          </button>
+                        )}
                       </>
                     ) : (
                       <div className="flex space-x-2">
@@ -277,20 +321,24 @@ export default function Profile() {
 
             {/* User Info Section */}
             <div className="text-center md:text-left mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
-              <p className="text-gray-600 dark:text-gray-400 font-medium">@{user.username}</p>
+              <div className="flex flex-col md:flex-row items-center md:items-center gap-4 mb-1 justify-center md:justify-between w-full">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{profileUser.name}</h1>
+                
+                {/* Social Links */}
+                {!isEditing && (
+                  <div className="flex gap-3">
+                    {profileUser.github && <a href={profileUser.github} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"><Github size={20} strokeWidth={2} /></a>}
+                    {profileUser.facebook && <a href={profileUser.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"><Facebook size={20} strokeWidth={2} /></a>}
+                    {profileUser.linkedin && <a href={profileUser.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-700 dark:hover:text-blue-500 transition-colors"><Linkedin size={20} strokeWidth={2} /></a>}
+                  </div>
+                )}
+              </div>
 
-              {/* Social Links */}
-              {!isEditing && (
-                <div className="flex justify-center md:justify-start gap-4 mt-3">
-                  {user.github && <a href={user.github} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"><Github size={20} /></a>}
-                  {user.facebook && <a href={user.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"><Facebook size={20} /></a>}
-                  {user.linkedin && <a href={user.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-700 dark:hover:text-blue-500 transition-colors"><Linkedin size={20} /></a>}
-                </div>
-              )}
+              <p className="text-gray-600 dark:text-gray-400 font-medium">@{profileUser.username}</p>
+
 
               {/* Bio */}
-              {!isEditing && user.bio && <p className="text-gray-700 dark:text-gray-300 mt-4 max-w-2xl mx-auto md:mx-0">{user.bio}</p>}
+              {!isEditing && profileUser.bio && <p className="text-gray-700 dark:text-gray-300 mt-4 max-w-2xl mx-auto md:mx-0">{profileUser.bio}</p>}
             </div>
 
             {isEditing ? (
@@ -317,10 +365,10 @@ export default function Profile() {
         </div>
 
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">My Posts</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{isOwnProfile ? 'Bài viết của tôi' : `Bài viết của ${profileUser.name}`}</h2>
           <div className="space-y-6">
             {posts.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-12 text-center transition-colors"><p className="text-gray-500 dark:text-gray-400">You haven't posted anything yet.</p></div>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-12 text-center transition-colors"><p className="text-gray-500 dark:text-gray-400">Chưa có bài viết nào.</p></div>
             ) : (
               posts.map((post) => (
                 <PostCard key={post.id} post={post} />
