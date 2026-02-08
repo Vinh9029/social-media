@@ -56,7 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(text || 'Login failed');
+      }
 
       if (!res.ok) throw new Error(data.message || 'Login failed');
 
@@ -78,7 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, username, full_name: fullName }),
       });
-      const data = await res.json();
+      
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(text || 'Registration failed');
+      }
 
       if (!res.ok) throw new Error(data.message || 'Registration failed');
 
@@ -98,8 +112,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (updates: Partial<User>) => {
-    if (user) setUser({ ...user, ...updates });
-    return { error: null };
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/update`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-auth-token': token || ''
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Update failed');
+
+      setUser(data);
+      return { error: null };
+    } catch (error: any) {
+      console.error('Update profile error:', error);
+      return { error };
+    }
   };
 
   return (

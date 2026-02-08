@@ -123,6 +123,52 @@ router.put('/change-password', auth, async (req, res) => {
   }
 });
 
+// Update User Profile
+router.put('/update', auth, async (req, res) => {
+  try {
+    const { name, bio, avatar, cover, github, facebook, linkedin } = req.body;
+    
+    // Build user object
+    const userFields = {};
+    if (name) userFields.full_name = name;
+    if (bio) userFields.bio = bio;
+    if (avatar) userFields.avatar_url = avatar;
+    if (cover) userFields.cover_url = cover;
+    if (github) userFields.github = github;
+    if (facebook) userFields.facebook = facebook;
+    if (linkedin) userFields.linkedin = linkedin;
+
+    let user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: userFields },
+      { new: true }
+    ).select('-password');
+
+    // Map response to match Frontend User interface
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      name: user.full_name,
+      role: user.role,
+      avatar: user.avatar_url,
+      bio: user.bio,
+      cover: user.cover_url,
+      github: user.github,
+      facebook: user.facebook,
+      linkedin: user.linkedin
+    };
+
+    res.json(userResponse);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // --- OAUTH IMPLEMENTATION ---
 
 // 1. Google Login
