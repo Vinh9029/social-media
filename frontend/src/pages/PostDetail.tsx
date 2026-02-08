@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, MessageCircle, ArrowLeft, User, Trash2, Send, X, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, ArrowLeft, User, Send, X, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from '../utils/dateUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment } from '../types';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Send, Search, MoreVertical, Phone, Video, Settings, Plus, Info, Image, Smile } from 'lucide-react';
+import { Mail, Send, Search, MoreVertical, Phone, Video } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
@@ -11,7 +11,6 @@ const Messages = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [input, setInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'requests'>('all');
   
   // State dữ liệu thực
   const [conversations, setConversations] = useState<Conversation[]>([]);

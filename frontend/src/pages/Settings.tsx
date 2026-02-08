@@ -19,9 +19,12 @@ const Settings = () => {
   }, [user]);
 
   const handleSaveProfile = async () => {
-    const { error } = await updateProfile({ name: displayName });
-    if (error) showToast('Cập nhật thất bại', 'error');
-    else showToast('Đã cập nhật thông tin', 'success');
+    try {
+      await updateProfile({ name: displayName });
+      showToast('Đã cập nhật thông tin', 'success');
+    } catch (error) {
+      showToast('Cập nhật thất bại', 'error');
+    }
   };
 
   const handleUpdatePassword = async () => {
