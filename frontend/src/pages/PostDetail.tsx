@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, MessageCircle, ArrowLeft, User, Trash2, Send } from 'lucide-react';
+import { Heart, MessageCircle, ArrowLeft, User, Trash2, Send, X } from 'lucide-react';
 import { formatDistanceToNow } from '../utils/dateUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment } from '../types';
@@ -13,6 +13,7 @@ export default function PostDetail() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
 
   useEffect(() => {
     if (postId) {
@@ -51,6 +52,28 @@ export default function PostDetail() {
     }
   };
 
+  const handleLikeComment = async (commentId: string) => {
+    if (!user) return;
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: { 'x-auth-token': token || '' }
+      });
+      if (res.ok) {
+        const likes = await res.json();
+        setComments(prev => prev.map(c => {
+          if (c.id === commentId) {
+            return { ...c, likes: likes };
+          }
+          return c;
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newComment.trim()) return;
@@ -63,7 +86,10 @@ export default function PostDetail() {
           'Content-Type': 'application/json',
           'x-auth-token': token || ''
         },
-        body: JSON.stringify({ content: newComment })
+        body: JSON.stringify({ 
+          content: newComment,
+          parentId: replyingTo ? replyingTo.id : null
+        })
       });
       
       if (res.ok) {
@@ -74,18 +100,91 @@ export default function PostDetail() {
           id: savedComment._id,
           author: user,
           timestamp: new Date().toISOString(),
-          postId: postId || ''
+          postId: postId || '',
+          likes: [],
+          parentId: replyingTo ? replyingTo.id : null
         };
         setComments([...comments, commentWithUser]);
         setNewComment('');
+        setReplyingTo(null);
       }
     } catch (err) {
       console.error(err);
     }
   };
 
+  // Helper function to build comment tree
+  const buildCommentTree = (comments: Comment[]) => {
+    const commentMap: { [key: string]: Comment } = {};
+    const roots: Comment[] = [];
+
+    // Initialize map and replies array
+    comments.forEach(c => {
+      commentMap[c.id] = { ...c, replies: [] };
+    });
+
+    comments.forEach(c => {
+      if (c.parentId && commentMap[c.parentId]) {
+        commentMap[c.parentId].replies?.push(commentMap[c.id]);
+      } else {
+        roots.push(commentMap[c.id]);
+      }
+    });
+
+    return roots;
+  };
+
+  const CommentItem = ({ comment, depth = 0 }: { comment: Comment, depth?: number }) => {
+    const isLiked = user && comment.likes.includes(user.id);
+    
+    return (
+      <div className={`flex flex-col ${depth > 0 ? 'ml-10 mt-3' : 'mt-4'}`}>
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
+            {comment.author.avatar ? (
+              <img src={comment.author.avatar} alt={comment.author.name} className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            )}
+          </div>
+          <div className="flex-1">
+            <div className="bg-gray-100 dark:bg-slate-700/50 rounded-2xl px-4 py-2 inline-block">
+              <div className="font-semibold text-sm text-gray-900 dark:text-white">{comment.author.name}</div>
+              <p className="text-gray-800 dark:text-gray-200 text-sm">{comment.content}</p>
+            </div>
+            <div className="flex items-center gap-4 mt-1 ml-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
+              <span>{formatDistanceToNow(comment.timestamp)}</span>
+              <button 
+                onClick={() => handleLikeComment(comment.id)}
+                className={`hover:underline ${isLiked ? 'text-red-500 font-bold' : ''}`}
+              >
+                Like {comment.likes.length > 0 && `(${comment.likes.length})`}
+              </button>
+              <button 
+                onClick={() => setReplyingTo(comment)}
+                className="hover:underline"
+              >
+                Reply
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* Render Replies Recursively */}
+        {comment.replies && comment.replies.length > 0 && (
+          <div>
+            {comment.replies.map(reply => (
+              <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Loading...</div>;
   if (!post) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Post not found</div>;
+
+  const rootComments = buildCommentTree(comments);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-900 transition-colors">
@@ -110,25 +209,31 @@ export default function PostDetail() {
 
           <div className="border-t border-gray-200 dark:border-slate-700 p-6 bg-gray-50 dark:bg-slate-800/50">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comments ({comments.length})</h3>
-            <form onSubmit={handleSubmitComment} className="mb-6">
+            
+            {/* Comment Input */}
+            <form onSubmit={handleSubmitComment} className="mb-6 sticky top-0 z-10 bg-gray-50 dark:bg-slate-800/50 pb-2">
+              {replyingTo && (
+                <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg mb-2 text-sm">
+                  <span className="text-blue-600 dark:text-blue-400">Replying to <b>{replyingTo.author.name}</b></span>
+                  <button type="button" onClick={() => setReplyingTo(null)}><X size={14} className="text-gray-500" /></button>
+                </div>
+              )}
               <div className="flex space-x-3">
-                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write a comment..." className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input 
+                  type="text" 
+                  value={newComment} 
+                  onChange={(e) => setNewComment(e.target.value)} 
+                  placeholder={replyingTo ? "Write a reply..." : "Write a comment..."}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                />
                 <button type="submit" disabled={!newComment.trim()} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"><Send className="w-4 h-4" /></button>
               </div>
             </form>
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <div key={comment.id} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3 flex-1">
-                      <div className="w-8 h-8 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-gray-600 dark:text-gray-400" /></div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1"><span className="font-semibold text-gray-900 dark:text-white">{comment.author.name}</span><span className="text-sm text-gray-500 dark:text-gray-400">{formatDistanceToNow(comment.timestamp)}</span></div>
-                        <p className="text-gray-700 dark:text-gray-300">{comment.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            
+            {/* Comment Tree */}
+            <div className="space-y-1">
+              {rootComments.map((comment) => (
+                <CommentItem key={comment.id} comment={comment} />
               ))}
             </div>
           </div>

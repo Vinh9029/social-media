@@ -59,6 +59,24 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
   }
 });
 
+// Upload Post Image Route
+router.post('/post', auth, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Vui lòng chọn file ảnh' });
+    }
+
+    // Tạo đường dẫn URL
+    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/users/${req.user.id}/${req.file.filename}`;
+
+    // Trả về URL để frontend dùng tạo bài viết
+    res.json({ url: imageUrl, message: 'Upload thành công' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Lỗi server khi upload' });
+  }
+});
+
 // Lấy danh sách ảnh trong bộ sưu tập của User
 router.get('/collection', auth, async (req, res) => {
   try {

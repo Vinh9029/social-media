@@ -27,5 +27,9 @@ export interface Comment {
   author: User;
   timestamp: string;
   postId: string;
-  postTitle?: string; // Dành cho trang Admin
+  postTitle?: string; // Dành cho trang
+  //  Admin
+  parentId?: string | null;
+  likes: string[];
+  replies?: Comment[];
 }

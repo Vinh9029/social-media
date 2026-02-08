@@ -14,6 +14,7 @@ import Notifications from './pages/Notifications';
 import Messages from './pages/Messages';
 import Saved from './pages/Saved';
 import Settings from './pages/Settings';
+import ChatWidget from './components/ChatWidget';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 
@@ -38,6 +39,7 @@ const MainLayout = () => {
         </Routes>
       </main>
       {!isProfilePage && <Rightbar />}
+      <ChatWidget />
     </div>
   );
 };

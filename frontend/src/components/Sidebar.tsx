@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Home, Hash, Bell, Mail, Bookmark, User, Settings, LogOut, LogIn } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const menuItems = [
     { icon: Home, label: 'Trang chủ', path: '/' },
@@ -19,8 +20,12 @@ const Sidebar = () => {
   ];
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+    // Thêm delay nhỏ để tạo hiệu ứng mượt mà
+    await new Promise(resolve => setTimeout(resolve, 800));
     await signOut();
     navigate('/login');
+    setIsLoggingOut(false);
   };
 
   return (
@@ -57,10 +62,15 @@ const Sidebar = () => {
       {user ? (
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 mt-auto font-medium hover:shadow-sm active:scale-95"
+          disabled={isLoggingOut}
+          className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 mt-auto font-medium hover:shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <LogOut size={22} />
-          <span>Đăng xuất</span>
+          {isLoggingOut ? (
+            <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <LogOut size={22} />
+          )}
+          <span>{isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}</span>
         </button>
       ) : (
         <button 

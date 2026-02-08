@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn } from 'lucide-react';
+import { LogIn, Github, Chrome } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Login() {
@@ -10,6 +10,20 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
+
+  // Kiểm tra URL xem có token từ Google/GitHub trả về không
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const errorMsg = params.get('error');
+
+    if (token) {
+      localStorage.setItem('token', token);
+      window.location.href = '/'; // Reload để AuthContext cập nhật user
+    } else if (errorMsg) {
+      setError('Đăng nhập thất bại: ' + errorMsg);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +38,14 @@ export default function Login() {
     } else {
       navigate('/');
     }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:5000/api/auth/google';
+  };
+
+  const handleGithubLogin = () => {
+    window.location.href = 'http://localhost:5000/api/auth/github';
   };
 
   return (
@@ -95,6 +117,23 @@ export default function Login() {
               )}
             </button>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/20"></div></div>
+              <div className="relative flex justify-center text-sm"><span className="px-2 bg-transparent text-gray-400 bg-[#1e293b]">Or continue with</span></div>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button onClick={handleGoogleLogin} className="flex items-center justify-center px-4 py-2 border border-white/20 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
+                <Chrome className="w-5 h-5 mr-2" />
+                Google
+              </button>
+              <button onClick={handleGithubLogin} className="flex items-center justify-center px-4 py-2 border border-white/20 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
+                <Github className="w-5 h-5 mr-2" />
+                GitHub
+              </button>
+            </div>
+          </div>
 
           <div className="mt-8 text-center">
             <p className="text-gray-400">

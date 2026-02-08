@@ -145,7 +145,9 @@ router.get('/:id/comments', async (req, res) => {
         avatar: comment.user.avatar_url
       },
       timestamp: comment.createdAt,
-      postId: comment.post
+      postId: comment.post,
+      parentId: comment.parentId || null,
+      likes: comment.likes || []
     })));
   } catch (err) {
     console.error(err.message);
@@ -159,13 +161,36 @@ router.post('/:id/comments', auth, async (req, res) => {
     const newComment = new Comment({
       content: req.body.content,
       user: req.user.id,
-      post: req.params.id
+      post: req.params.id,
+      parentId: req.body.parentId || null,
+      likes: []
     });
     
     await newComment.save();
     res.json(newComment);
   } catch (err) {
     console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Toggle Like Comment
+router.post('/comments/:id/like', auth, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) return res.status(404).json({ msg: 'Comment not found' });
+
+    if (!comment.likes) comment.likes = [];
+
+    if (comment.likes.includes(req.user.id)) {
+      comment.likes = comment.likes.filter(id => id.toString() !== req.user.id);
+    } else {
+      comment.likes.unshift(req.user.id);
+    }
+
+    await comment.save();
+    res.json(comment.likes);
+  } catch (err) {
     res.status(500).send('Server Error');
   }
 });

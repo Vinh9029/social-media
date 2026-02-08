@@ -120,4 +120,96 @@ router.put('/change-password', auth, async (req, res) => {
   }
 });
 
+// --- OAUTH IMPLEMENTATION ---
+
+// 1. Google Login
+router.get('/google', (req, res) => {
+  const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+  const options = {
+    redirect_uri: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    access_type: 'offline',
+    response_type: 'code',
+    prompt: 'consent',
+    scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'].join(' '),
+  };
+  const qs = new URLSearchParams(options);
+  res.redirect(`${rootUrl}?${qs.toString()}`);
+});
+
+router.get('/google/callback', async (req, res) => {
+  const code = req.query.code;
+  try {
+    // Exchange code for token
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+        grant_type: 'authorization_code',
+      }),
+    });
+    const { access_token } = await tokenRes.json();
+
+    // Get User Info
+    const userRes = await fetch(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`);
+    const googleUser = await userRes.json();
+
+    // Find or Create User
+    let user = await User.findOne({ email: googleUser.email });
+    if (!user) {
+      user = new User({
+        username: googleUser.email.split('@')[0] + Math.floor(Math.random() * 1000),
+        email: googleUser.email,
+        password: await bcrypt.hash(Math.random().toString(36), 10), // Random password
+        full_name: googleUser.name,
+        avatar_url: googleUser.picture,
+      });
+      await user.save();
+    }
+
+    // Generate Token & Redirect
+    const payload = { user: { id: user.id } };
+    jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
+      if (err) throw err;
+      res.redirect(`http://localhost:5173/login?token=${token}`);
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('http://localhost:5173/login?error=GoogleLoginFailed');
+  }
+});
+
+// 2. GitHub Login (Simplified)
+router.get('/github', (req, res) => {
+  const rootUrl = 'https://github.com/login/oauth/authorize';
+  const options = {
+    client_id: process.env.GITHUB_CLIENT_ID,
+    redirect_uri: process.env.GITHUB_CALLBACK_URL || 'http://localhost:5000/api/auth/github/callback',
+    scope: 'user:email',
+  };
+  const qs = new URLSearchParams(options);
+  res.redirect(`${rootUrl}?${qs.toString()}`);
+});
+
+router.get('/github/callback', async (req, res) => {
+  const code = req.query.code;
+  try {
+    // Exchange code for token
+    const tokenRes = await fetch(`https://github.com/login/oauth/access_token?client_id=${process.env.GITHUB_CLIENT_ID}&client_secret=${process.env.GITHUB_CLIENT_SECRET}&code=${code}`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' }
+    });
+    const tokenData = await tokenRes.json();
+    // Note: Logic lấy user info GitHub tương tự Google, bạn có thể bổ sung sau.
+    // Tạm thời redirect về login để tránh lỗi nếu chưa cấu hình env
+    res.redirect('http://localhost:5173/login?error=GitHubNotConfiguredYet');
+  } catch (err) {
+    res.redirect('http://localhost:5173/login?error=GitHubLoginFailed');
+  }
+});
+
 module.exports = router;
