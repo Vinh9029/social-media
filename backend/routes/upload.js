@@ -10,7 +10,7 @@ const User = require('../models/User');
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // Tạo thư mục riêng cho từng user: uploads/users/{userId}
-    const userDir = path.join(__dirname, '../uploads/users', req.user.id);
+    const userDir = path.join(__dirname, '../../frontend/public/uploads/users', req.user.id);
     
     if (!fs.existsSync(userDir)){
         fs.mkdirSync(userDir, { recursive: true });
@@ -45,9 +45,9 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
       return res.status(400).json({ message: 'Vui lòng chọn file ảnh' });
     }
 
-    // Tạo đường dẫn URL để frontend truy cập
-    // Ví dụ: http://localhost:5000/uploads/users/userId/filename.jpg
-    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/users/${req.user.id}/${req.file.filename}`;
+    // Tạo đường dẫn URL tương đối để frontend truy cập từ thư mục public
+    // Ví dụ: /uploads/users/userId/filename.jpg
+    const avatarUrl = `/uploads/users/${req.user.id}/${req.file.filename}`;
 
     // Cập nhật avatar cho user trong DB
     await User.findByIdAndUpdate(req.user.id, { avatar_url: avatarUrl });
@@ -67,7 +67,7 @@ router.post('/cover', auth, upload.single('cover'), async (req, res) => {
     }
 
     // Tạo đường dẫn URL
-    const coverUrl = `${req.protocol}://${req.get('host')}/uploads/users/${req.user.id}/${req.file.filename}`;
+    const coverUrl = `/uploads/users/${req.user.id}/${req.file.filename}`;
 
     // Cập nhật cover_url cho user trong DB
     await User.findByIdAndUpdate(req.user.id, { cover_url: coverUrl });
@@ -87,7 +87,7 @@ router.post('/post', auth, upload.single('image'), async (req, res) => {
     }
 
     // Tạo đường dẫn URL
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/users/${req.user.id}/${req.file.filename}`;
+    const imageUrl = `/uploads/users/${req.user.id}/${req.file.filename}`;
 
     // Trả về URL để frontend dùng tạo bài viết
     res.json({ url: imageUrl, message: 'Upload thành công' });
@@ -100,12 +100,12 @@ router.post('/post', auth, upload.single('image'), async (req, res) => {
 // Lấy danh sách ảnh trong bộ sưu tập của User
 router.get('/collection', auth, async (req, res) => {
   try {
-    const userDir = path.join(__dirname, '../uploads/users', req.user.id);
+    const userDir = path.join(__dirname, '../../frontend/public/uploads/users', req.user.id);
     if (!fs.existsSync(userDir)) {
       return res.json([]);
     }
     const files = fs.readdirSync(userDir);
-    const urls = files.map(file => `${req.protocol}://${req.get('host')}/uploads/users/${req.user.id}/${file}`);
+    const urls = files.map(file => `/uploads/users/${req.user.id}/${file}`);
     res.json(urls);
   } catch (err) {
     res.status(500).json({ message: 'Lỗi lấy bộ sưu tập' });
