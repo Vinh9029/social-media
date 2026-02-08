@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { MessageCircle, X, Send, Minus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useMessages } from '../contexts/MessagesContext';
 
 const ChatWidget = () => {
   const { user } = useAuth();
+  const { messages, sendMessage } = useMessages();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [input, setInput] = useState('');
 
   if (!user) return null;
 
@@ -15,6 +18,13 @@ const ChatWidget = () => {
       setIsOpen(true);
     } else {
       setIsOpen(!isOpen);
+    }
+  };
+
+  const handleSend = () => {
+    if (input.trim()) {
+      sendMessage({ from: user.username, to: 'admin', content: input.trim() });
+      setInput('');
     }
   };
 
@@ -38,19 +48,19 @@ const ChatWidget = () => {
             </div>
           </div>
 
-          {/* Body (Mock Data) */}
+          {/* Body (Messages) */}
           <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-slate-900/50 space-y-3">
-            <div className="flex justify-start">
-              <div className="bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white px-3 py-2 rounded-2xl rounded-tl-none text-sm max-w-[80%]">
-                Xin chào! Bạn có khỏe không?
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <div className="bg-blue-600 text-white px-3 py-2 rounded-2xl rounded-tr-none text-sm max-w-[80%]">
-                Mình khỏe, cảm ơn bạn!
-              </div>
-            </div>
-            <div className="text-center text-xs text-gray-400 my-2">Hôm nay</div>
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-400">Chưa có tin nhắn nào.</div>
+            ) : (
+              messages.map(msg => (
+                <div key={msg.id} className={`flex ${msg.from === user.username ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`px-3 py-2 rounded-2xl text-sm max-w-[80%] ${msg.from === user.username ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white rounded-tl-none'}`}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Footer */}
@@ -59,9 +69,11 @@ const ChatWidget = () => {
               <input 
                 type="text" 
                 placeholder="Nhập tin nhắn..." 
+                value={input}
+                onChange={e => setInput(e.target.value)}
                 className="flex-1 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white text-sm rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               />
-              <button className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+              <button className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors" onClick={handleSend}>
                 <Send size={16} />
               </button>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, MessageCircle, ArrowLeft, User, Trash2, Send, X } from 'lucide-react';
+import { Heart, MessageCircle, ArrowLeft, User, Trash2, Send, X, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from '../utils/dateUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment } from '../types';
@@ -140,17 +140,17 @@ export default function PostDetail() {
     return (
       <div className={`flex flex-col ${depth > 0 ? 'ml-10 mt-3' : 'mt-4'}`}>
         <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
             {comment.author.avatar ? (
-              <img src={comment.author.avatar} alt={comment.author.name} className="w-8 h-8 rounded-full object-cover" />
+              <img src={comment.author.avatar} alt={comment.author.name} className="w-full h-full object-cover" />
             ) : (
               <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             )}
           </div>
           <div className="flex-1">
-            <div className="bg-gray-100 dark:bg-slate-700/50 rounded-2xl px-4 py-2 inline-block">
+            <div className="bg-gray-100 dark:bg-slate-700 rounded-2xl px-4 py-2 inline-block transition-colors">
               <div className="font-semibold text-sm text-gray-900 dark:text-white">{comment.author.name}</div>
-              <p className="text-gray-800 dark:text-gray-200 text-sm">{comment.content}</p>
+              <p className="text-gray-800 dark:text-gray-200 text-sm whitespace-pre-wrap">{comment.content}</p>
             </div>
             <div className="flex items-center gap-4 mt-1 ml-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
               <span>{formatDistanceToNow(comment.timestamp)}</span>
@@ -165,6 +165,9 @@ export default function PostDetail() {
                 className="hover:underline"
               >
                 Reply
+              </button>
+              <button className="hover:underline flex items-center gap-1">
+                <Share2 size={12} /> Share
               </button>
             </div>
           </div>
@@ -204,6 +207,7 @@ export default function PostDetail() {
             <div className="flex items-center space-x-6 pt-4 border-t border-gray-100 dark:border-slate-700">
               <button onClick={handleLike} className={`flex items-center space-x-2 transition ${post.liked ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}><Heart className={`w-6 h-6 ${post.liked ? 'fill-current' : ''}`} /><span className="font-medium">{post.likes}</span></button>
               <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400"><MessageCircle className="w-6 h-6" /><span className="font-medium">{comments.length}</span></div>
+              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400"><Share2 className="w-6 h-6" /><span className="font-medium">{post.shares}</span></div>
             </div>
           </div>
 

@@ -17,6 +17,7 @@ import Settings from './pages/Settings';
 import ChatWidget from './components/ChatWidget';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { MessagesProvider } from './contexts/MessagesContext';
 
 const MainLayout = () => {
   const location = useLocation();
@@ -50,11 +51,13 @@ function App() {
       <AuthProvider>
         <ThemeProvider>
           <ToastProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="*" element={<MainLayout />} />
-            </Routes>
+            <MessagesProvider>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="*" element={<MainLayout />} />
+              </Routes>
+            </MessagesProvider>
           </ToastProvider>
         </ThemeProvider>
       </AuthProvider>

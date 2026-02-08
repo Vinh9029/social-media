@@ -241,12 +241,10 @@ export default function Profile() {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">My Posts</h2>
           <div className="space-y-6">
             {posts.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-12 text-center transition-colors"><p className="text-gray-500 dark:text-gray-400">You haven't posted anything yet.</p></div>
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-12 text-center transition-colors"></div>
             ) : (
               posts.map((post) => (
-                <div key={post.id} onClick={() => navigate(`/post/${post.id}`)} className="cursor-pointer">
-                  <PostCard post={post} />
-                </div>
+                <PostCard key={post.id} post={post} />
               ))
             )}
           </div>
