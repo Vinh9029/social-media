@@ -27,11 +27,11 @@ mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/posts', require('./routes/posts'));
-app.use('/api/upload', require('./routes/upload'));
 app.use('/api/users', require('./routes/users'));
-app.use('/api/messages', require('./routes/messages'));
-app.use('/api/search', require('./routes/search'));
-app.use('/api/notifications', require('./routes/notifications'));
+// app.use('/api/upload', require('./routes/upload'));
+// app.use('/api/messages', require('./routes/messages'));
+// app.use('/api/search', require('./routes/search'));
+// app.use('/api/notifications', require('./routes/notifications'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
