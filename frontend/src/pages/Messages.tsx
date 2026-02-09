@@ -65,6 +65,8 @@ const Messages = () => {
             const data = await res.json();
             setCurrentMessages(data);
             scrollToBottom();
+            // Phát sự kiện để Sidebar cập nhật lại badge
+            window.dispatchEvent(new Event('messages-read'));
           }
         } catch (error) {
           console.error("Error fetching messages:", error);

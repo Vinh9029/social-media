@@ -3,6 +3,7 @@ const router = express.Router();
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const auth = require('../middleware/auth');
+const Notification = require('../models/Notifications');
 
 // Get Trending Posts (For Explore Page)
 router.get('/trending', async (req, res) => {
@@ -279,6 +280,35 @@ router.post('/:id/comments', auth, async (req, res) => {
     
     await newComment.save();
     await newComment.populate('author', 'username full_name avatar_url');
+
+    // --- TẠO THÔNG BÁO ---
+    const post = await Post.findById(req.params.id);
+    let recipientId = post.author;
+    let notifType = 'comment';
+    let notifContent = 'đã bình luận về bài viết của bạn';
+
+    // Nếu là Reply (trả lời bình luận)
+    if (req.body.parentId) {
+      const parentComment = await Comment.findById(req.body.parentId);
+      if (parentComment) {
+        recipientId = parentComment.author;
+        notifType = 'reply';
+        notifContent = 'đã trả lời bình luận của bạn';
+      }
+    }
+
+    // Chỉ tạo thông báo nếu người comment không phải là chính chủ
+    if (recipientId.toString() !== req.user.id) {
+      await new Notification({
+        recipient: recipientId,
+        sender: req.user.id,
+        type: notifType,
+        post: post._id,
+        commentId: newComment._id,
+        content: notifContent
+      }).save();
+    }
+    // ---------------------
 
     res.json({
       id: newComment._id,

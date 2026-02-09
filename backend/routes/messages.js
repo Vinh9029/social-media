@@ -122,6 +122,13 @@ router.get('/conversations', auth, async (req, res) => {
 router.get('/:partnerId', auth, async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    
+    // Đánh dấu tin nhắn từ partner gửi cho user hiện tại là đã đọc
+    await Message.updateMany(
+      { sender: req.params.partnerId, recipient: req.user.id, read: false },
+      { read: true }
+    );
+
     const messages = await Message.find({
       $or: [
         { sender: req.user.id, recipient: req.params.partnerId },

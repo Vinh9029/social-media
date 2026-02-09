@@ -30,9 +30,15 @@ const Sidebar = () => {
       };
 
       fetchUnreadCount();
+      // Lắng nghe sự kiện đọc tin nhắn từ trang Messages
+      window.addEventListener('messages-read', fetchUnreadCount);
+      
       // Có thể thêm interval để polling nếu muốn cập nhật realtime hơn
       const interval = setInterval(fetchUnreadCount, 30000); // 30s check 1 lần
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('messages-read', fetchUnreadCount);
+      };
     }
   }, [user]);
 
