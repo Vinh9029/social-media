@@ -71,7 +71,21 @@ router.get('/saved', auth, async (req, res) => {
       }
     });
 
-    res.json(user.saved_posts);
+    // Đồng bộ cấu trúc bài viết đã lưu giống với News Feed
+    const savedPosts = user.saved_posts.map(post => ({
+      id: post._id,
+      content: post.content,
+      image: post.image_url,
+      author: post.author ? {
+        id: post.author._id,
+        name: post.author.full_name,
+        username: post.author.username,
+        avatar: post.author.avatar_url
+      } : { id: 'unknown', name: 'Unknown', avatar: '' },
+      timestamp: post.createdAt
+    }));
+
+    res.json(savedPosts);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
@@ -104,6 +118,34 @@ router.put('/unblock/:id', auth, async (req, res) => {
     res.json({ msg: 'User unblocked' });
   } catch (err) {
     console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Get User Profile by ID (Public)
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    // Đồng bộ data trả về cho Frontend
+    res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      name: user.full_name,
+      avatar: user.avatar_url,
+      cover: user.cover_url,
+      bio: user.bio,
+      github: user.github,
+      facebook: user.facebook,
+      linkedin: user.linkedin,
+      followers: user.followers,
+      following: user.following
+    });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') return res.status(404).json({ msg: 'User not found' });
     res.status(500).send('Server Error');
   }
 });

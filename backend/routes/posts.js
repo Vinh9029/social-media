@@ -109,11 +109,20 @@ router.get('/', async (req, res) => {
 // Create a post
 router.post('/', auth, async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { content, image_url, title } = req.body;
+
+    // Validation: Bài viết phải có ít nhất nội dung hoặc ảnh
+    if (!content && !image_url) {
+      return res.status(400).json({ message: 'Bài viết phải có nội dung hoặc hình ảnh' });
+    }
+
     const newPost = new Post({
       author: req.user.id,
-      title: req.body.title,
-      content: req.body.content,
-      image_url: req.body.image_url
+      title,
+      content,
+      image_url
     });
 
     const post = await newPost.save();
@@ -269,7 +278,22 @@ router.post('/:id/comments', auth, async (req, res) => {
     });
     
     await newComment.save();
-    res.json(newComment);
+    await newComment.populate('author', 'username full_name avatar_url');
+
+    res.json({
+      id: newComment._id,
+      content: newComment.content,
+      author: {
+        id: newComment.author._id,
+        name: newComment.author.full_name,
+        username: newComment.author.username,
+        avatar: newComment.author.avatar_url
+      },
+      timestamp: newComment.createdAt,
+      postId: newComment.post,
+      parentId: newComment.parentId || null,
+      likes: []
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

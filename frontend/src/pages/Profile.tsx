@@ -43,7 +43,7 @@ export default function Profile() {
       } else if (userId) {
         // Xem profile người khác
         try {
-          const res = await fetch(`${API_URL}/api/auth/profile/${userId}`);
+          const res = await fetch(`${API_URL}/api/users/${userId}`);
           if (res.ok) {
             const data = await res.json();
             // Đảm bảo có id để dùng cho các chức năng follow/message

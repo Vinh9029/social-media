@@ -20,8 +20,25 @@ const generateToken = (id) => {
 // @access  Private
 router.get('/me', auth, async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
     const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Đồng bộ data: Map các trường DB sang trường Frontend mong đợi
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      name: user.full_name,       // Frontend dùng 'name'
+      avatar: user.avatar_url,    // Frontend dùng 'avatar'
+      cover: user.cover_url,
+      bio: user.bio,
+      github: user.github,
+      facebook: user.facebook,
+      linkedin: user.linkedin,
+      followers: user.followers,
+      following: user.following
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -98,6 +115,7 @@ router.post('/login', async (req, res) => {
 // @access  Private
 router.put('/update', auth, async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -136,6 +154,7 @@ router.put('/update', auth, async (req, res) => {
 router.put('/change-password', auth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
     const user = await User.findById(req.user.id);
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });

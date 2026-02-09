@@ -1,13 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Hash, Bell, Mail, Bookmark, User, Settings, LogOut, LogIn, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { API_URL } from '../config';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread messages count
+  useEffect(() => {
+    if (user) {
+      const fetchUnreadCount = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${API_URL}/api/messages/unread-count`, {
+            headers: { 'x-auth-token': token || '' }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUnreadCount(data.count);
+          }
+        } catch (error) {
+          console.error("Error fetching unread count", error);
+        }
+      };
+
+      fetchUnreadCount();
+      // Có thể thêm interval để polling nếu muốn cập nhật realtime hơn
+      const interval = setInterval(fetchUnreadCount, 30000); // 30s check 1 lần
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const menuItems = [
     { icon: Home, label: 'Trang chủ', path: '/' },
@@ -61,7 +88,14 @@ const Sidebar = () => {
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <item.icon size={22} className={isActive ? "stroke-[2.5px]" : "stroke-2"} />
+            <div className="relative">
+              <item.icon size={22} className={isActive ? "stroke-[2.5px]" : "stroke-2"} />
+              {item.path === '/messages' && unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center border-2 border-white dark:border-slate-900 flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </div>
             <span>{item.label}</span>
           </button>
         )})}

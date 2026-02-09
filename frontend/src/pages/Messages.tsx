@@ -277,8 +277,8 @@ const Messages = () => {
               <div className="text-center text-gray-400 mt-10">Bắt đầu cuộc trò chuyện...</div>
             ) : (
               currentMessages.map(msg => (
-                <div key={msg._id} className={`flex ${msg.sender?._id === user.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[75%] md:max-w-[60%] shadow-sm break-words ${msg.sender?._id === user.id ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-bl-none border border-gray-100 dark:border-slate-700'}`}>
+                <div key={msg._id} className={`flex ${msg.sender?.id === user.id ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[75%] md:max-w-[60%] shadow-sm break-words ${msg.sender?.id === user.id ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-bl-none border border-gray-100 dark:border-slate-700'}`}>
                     {msg.content}
                   </div>
                 </div>

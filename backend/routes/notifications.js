@@ -12,7 +12,21 @@ router.get('/', auth, async (req, res) => {
       .populate('post', 'content image_url')
       .limit(20);
     
-    res.json(notifications);
+    const formattedNotifications = notifications.map(n => ({
+      id: n._id,
+      type: n.type, // like, comment, follow...
+      sender: n.sender ? {
+        id: n.sender._id,
+        name: n.sender.full_name,
+        username: n.sender.username,
+        avatar: n.sender.avatar_url
+      } : { name: 'Unknown', avatar: '' },
+      post: n.post,
+      read: n.read,
+      createdAt: n.createdAt
+    }));
+    
+    res.json(formattedNotifications);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
