@@ -226,7 +226,8 @@ router.get('/google/callback', async (req, res) => {
     }
 
     const token = generateToken(user.id);
-    res.redirect(`${process.env.CLIENT_URL}?token=${token}`);
+    // Redirect về trang /login để Frontend (Login.tsx) bắt được token và xử lý
+    res.redirect(`${process.env.CLIENT_URL}/login?token=${token}`);
   } catch (err) {
     console.error('Google Auth Error:', err);
     res.redirect(`${process.env.CLIENT_URL}/login?error=GoogleAuthFailed`);
@@ -237,6 +238,11 @@ router.get('/google/callback', async (req, res) => {
 router.get('/github', (req, res) => {
   const redirectUri = process.env.GITHUB_CALLBACK_URL;
   const clientId = process.env.GITHUB_CLIENT_ID;
+  
+  if (!clientId) {
+    return res.status(500).send('Server Error: GITHUB_CLIENT_ID is missing');
+  }
+
   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
   res.redirect(url);
 });
@@ -303,7 +309,8 @@ router.get('/github/callback', async (req, res) => {
     }
 
     const token = generateToken(user.id);
-    res.redirect(`${process.env.CLIENT_URL}?token=${token}`);
+    // Redirect về trang /login để Frontend (Login.tsx) bắt được token và xử lý
+    res.redirect(`${process.env.CLIENT_URL}/login?token=${token}`);
   } catch (err) {
     console.error('GitHub Auth Error:', err);
     res.redirect(`${process.env.CLIENT_URL}/login?error=GitHubAuthFailed`);
