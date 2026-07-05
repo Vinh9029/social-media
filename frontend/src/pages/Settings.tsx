@@ -145,21 +145,30 @@ const Settings = () => {
         </div>
 
         {/* Appearance */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 transition-colors">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-            {theme === 'dark' ? <Moon size={20} className="text-purple-500" /> : <Sun size={20} className="text-orange-500" />} 
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/60 p-6 transition-all duration-300">
+          <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            {theme === 'dark' ? <Moon size={18} className="text-indigo-500 animate-pulse" /> : <Sun size={18} className="text-amber-500 animate-spin-slow" />} 
             Giao diện
           </h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900 dark:text-white">Chế độ tối (Dark Mode)</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Điều chỉnh giao diện để bảo vệ mắt</p>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">Chế độ tối (Dark Mode)</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Điều chỉnh giao diện tối ưu hóa cho ban đêm</p>
             </div>
             <button 
               onClick={toggleTheme}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200'}`}
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 active:scale-95 shadow-inner ${theme === 'dark' ? 'bg-indigo-600' : 'bg-slate-200'}`}
             >
-              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
+              <span className="sr-only">Toggle dark mode</span>
+              <span 
+                className={`flex items-center justify-center h-6 w-6 transform rounded-full bg-white shadow-md transition-all duration-500 ${theme === 'dark' ? 'translate-x-7 rotate-180' : 'translate-x-1'}`}
+              >
+                {theme === 'dark' ? (
+                  <Moon size={12} className="text-indigo-600 fill-indigo-600" />
+                ) : (
+                  <Sun size={12} className="text-amber-500 fill-amber-500" />
+                )}
+              </span>
             </button>
           </div>
         </div>

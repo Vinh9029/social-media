@@ -32,6 +32,7 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/stories', require('./routes/stories'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

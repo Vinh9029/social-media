@@ -22,6 +22,7 @@ export interface Post {
   author: User;
   content: string;
   image?: string;
+  images?: string[];
   likes: number;
   comments: number;
   shares: number;
@@ -46,9 +47,21 @@ export interface Comment {
 
 export interface Message {
   _id: string;
+  id?: string; // Standardize backend id format
   sender: User;
   recipient: User;
   content: string;
+  image?: string;
+  replyTo?: {
+    id: string;
+    content: string;
+    image?: string;
+    sender: {
+      id: string;
+      name: string;
+    };
+  } | null;
+  reactions?: { user: string; type: string }[];
   createdAt: string;
   read: boolean; // Trạng thái đã đọc
 }

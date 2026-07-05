@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Github, Chrome } from 'lucide-react';
+import { LogIn, Github, Chrome, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
+import { motion } from 'framer-motion';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,7 +13,6 @@ export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  // Kiểm tra URL xem có token từ Google/GitHub trả về không
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
@@ -20,7 +20,7 @@ export default function Login() {
 
     if (token) {
       localStorage.setItem('token', token);
-      window.location.href = '/'; // Reload để AuthContext cập nhật user
+      window.location.href = '/';
     } else if (errorMsg) {
       setError('Đăng nhập thất bại: ' + errorMsg);
     }
@@ -50,101 +50,178 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-      </div>
+    <div className="min-h-screen flex bg-slate-900 overflow-hidden">
 
-      <div className="relative w-full max-w-md">
-        <div className="backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl border border-white/20 p-8 transform transition-all duration-300 hover:shadow-2xl hover:border-white/40">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-6 shadow-lg transform transition-transform duration-500 hover:scale-110">
-              <LogIn className="w-8 h-8 text-white" />
+      {/* Left side: Branding & Hero section */}
+      <motion.div 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="hidden lg:flex lg:w-3/5 relative flex-col justify-between p-12 overflow-hidden"
+      >
+        {/* Image Background with 70% opacity overlay */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/login_background.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/80 via-purple-900/80 to-slate-900/90 backdrop-blur-[2px]"></div>
+
+        {/* Background abstract shapes */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
+          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-white rounded-full mix-blend-overlay filter blur-[100px] animate-pulse"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-300 rounded-full mix-blend-overlay filter blur-[120px] animate-pulse delay-700"></div>
+        </div>
+
+        <div className="relative z-10">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 150 }}
+            className="flex items-center gap-3 text-white"
+          >
+            <Sparkles className="w-8 h-8" />
+            <span className="text-2xl font-bold tracking-tight">DX Social Community</span>
+          </motion.div>
+        </div>
+
+        <div className="relative z-10 max-w-lg">
+          <motion.h1
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="text-5xl font-extrabold text-white leading-tight mb-6"
+          >
+            Kết nối với thế giới của bạn.
+          </motion.h1>
+          <motion.p
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.8 }}
+            className="text-lg text-white/80"
+          >
+            Tham gia cộng đồng để chia sẻ những khoảnh khắc tuyệt vời, cập nhật tin tức và trò chuyện cùng bạn bè.
+          </motion.p>
+        </div>
+
+        <div className="relative z-10">
+          <p className="text-white/60 text-sm">© 2026 DXSocial Community. All rights reserved.</p>
+        </div>
+      </motion.div>
+
+      {/* Right side: Login Form */}
+      <div className="w-full lg:w-2/5 flex items-center justify-center p-8 relative">
+        {/* Mobile abstract backgrounds */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none lg:hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-700"></div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full max-w-md"
+        >
+          <div className="backdrop-blur-2xl bg-white/5 lg:bg-transparent lg:border-none border border-white/10 rounded-[2rem] p-8 lg:p-0 shadow-2xl lg:shadow-none">
+            <div className="text-center lg:text-left mb-10">
+              <h2 className="text-3xl font-bold text-white mb-3">Chào mừng trở lại</h2>
+              <p className="text-gray-400">Đăng nhập để tiếp tục</p>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-gray-300 text-lg">Continue to your community</p>
-          </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 text-red-200 rounded-xl text-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
-              {error}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 transition-all hover:bg-white/10"
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                  Mật khẩu
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 transition-all hover:bg-white/10"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full mt-8 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-purple-500/30 disabled:opacity-50 transition-all"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    Đang xử lý...
+                  </span>
+                ) : (
+                  'Đăng nhập'
+                )}
+              </motion.button>
+            </form>
+
+            <div className="mt-8">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                <div className="relative flex justify-center text-sm"><span className="px-4 bg-slate-900 lg:bg-slate-900 text-gray-500">Hoặc tiếp tục với</span></div>
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-4">
+                <motion.button
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleGoogleLogin}
+                  className="flex items-center justify-center gap-2 px-4 py-3 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all"
+                >
+                  <Chrome className="w-5 h-5 text-gray-300" />
+                  <span>Google</span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleGithubLogin}
+                  className="flex items-center justify-center gap-2 px-4 py-3 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all"
+                >
+                  <Github className="w-5 h-5 text-gray-300" />
+                  <span>GitHub</span>
+                </motion.button>
+              </div>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="group">
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-200 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300 backdrop-blur-sm hover:bg-white/15"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div className="group">
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-200 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300 backdrop-blur-sm hover:bg-white/15"
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-6 bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-xl font-semibold transform transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50 hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <span className="animate-spin h-5 w-5 mr-2 border-2 border-white/30 border-t-white rounded-full"></span>
-                  Signing in...
-                </span>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/20"></div></div>
-              <div className="relative flex justify-center text-sm"><span className="px-2 bg-transparent text-gray-400 bg-[#1e293b]">Or continue with</span></div>
-            </div>
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button onClick={handleGoogleLogin} className="flex items-center justify-center px-4 py-2 border border-white/20 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
-                <Chrome className="w-5 h-5 mr-2" />
-                Google
-              </button>
-              <button onClick={handleGithubLogin} className="flex items-center justify-center px-4 py-2 border border-white/20 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
-                <Github className="w-5 h-5 mr-2" />
-                GitHub
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-8 text-center">
-            <p className="text-gray-400">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors duration-300 underline underline-offset-2">
-                Create one now
+            <p className="mt-10 text-center text-gray-400">
+              Chưa có tài khoản?{' '}
+              <Link to="/register" className="text-purple-400 font-medium hover:text-purple-300 transition-colors">
+                Đăng ký ngay
               </Link>
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

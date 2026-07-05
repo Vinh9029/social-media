@@ -11,7 +11,19 @@ const MessageSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
-  content: { type: String, required: true },
+  content: { type: String, default: '' },
+  image: { type: String, default: '' },
+  replyTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    default: null
+  },
+  reactions: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      type: { type: String } // e.g. '👍', '❤️', '😆', '😮', '😢', '😡'
+    }
+  ],
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });

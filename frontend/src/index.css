@@ -3,21 +3,34 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    scroll-behavior: smooth;
+  }
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-300;
   }
 }
 
-/* Tùy chỉnh thanh cuộn */
+@layer utilities {
+  .glass {
+    @apply bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/40 dark:border-slate-800/40;
+  }
+  .glass-card {
+    @apply bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-lg transition-all duration-300;
+  }
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full transition-colors;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply bg-slate-400 dark:bg-slate-600;
 }

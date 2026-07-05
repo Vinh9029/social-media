@@ -7,13 +7,16 @@ import { useToast } from '../contexts/ToastContext';
 import { API_URL } from '../config';
 import { formatDistanceToNow } from '../utils/dateUtils';
 import ReactionBar from './ReactionBar';
+import ImageGrid from './ImageGrid';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PostCardProps {
   post: Post;
   onDelete?: (postId: string) => void;
+  onPostClick?: (postId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete }) => {
+const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPostClick }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -152,7 +155,13 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete }) => {
   };
 
   const handleNavigate = () => {
-    if (!isEditing) navigate(`/post/${post.id}`);
+    if (!isEditing) {
+      if (onPostClick) {
+        onPostClick(post.id);
+      } else {
+        navigate(`/post/${post.id}`);
+      }
+    }
   };
 
   const handleProfileClick = (e: React.MouseEvent) => {
@@ -165,111 +174,128 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete }) => {
   const isShared = !!post.originalPost;
 
   return (
-    <div 
+    <motion.div 
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      whileHover={{ y: -2 }}
       onClick={handleNavigate}
-      className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-4 mb-4 hover:shadow-md transition-all duration-200 cursor-pointer relative"
+      className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/50 dark:border-slate-700/50 p-5 mb-5 hover:shadow-xl hover:shadow-blue-500/5 dark:hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer relative"
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <img
+          <motion.img
+            whileHover={{ scale: 1.1 }}
             src={post.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author.name)}&background=random`}
             alt={post.author.name}
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-50 dark:ring-slate-700"
+            className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-50 dark:ring-slate-700 shadow-sm cursor-pointer"
             onClick={handleProfileClick}
           />
           <div>
-            <h3 className="font-bold text-gray-900 dark:text-white text-sm hover:underline" onClick={handleProfileClick}>{post.author.name}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <h3 className="font-bold text-gray-900 dark:text-white text-[15px] hover:text-blue-600 transition-colors cursor-pointer" onClick={handleProfileClick}>{post.author.name}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
               @{post.author.username} • {formatDistanceToNow(post.timestamp)}
-              {post.editedAt && <span className="ml-1 italic text-gray-400">• Đã chỉnh sửa</span>}
-              {isShared && <span className="ml-1 text-gray-500">• Đã chia sẻ một bài viết</span>}
+              {post.editedAt && <span className="ml-1 italic opacity-70">• Đã chỉnh sửa</span>}
+              {isShared && <span className="ml-1 opacity-70">• Đã chia sẻ</span>}
             </p>
           </div>
         </div>
 
         {/* Save Button */}
-        <button 
+        <motion.button 
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           onClick={handleToggleSave}
-          className={`absolute top-4 right-12 p-2 rounded-full transition-colors ${isSaved ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+          className={`absolute top-5 right-14 p-2 rounded-full transition-colors ${isSaved ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
         >
           <Bookmark size={20} className={isSaved ? "fill-current" : ""} />
-        </button>
+        </motion.button>
         
         {isOwner && (
           <div className="relative" ref={menuRef} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowMenu(!showMenu)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+            <motion.button whileHover={{ scale: 1.1 }} onClick={() => setShowMenu(!showMenu)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
               <MoreHorizontal size={20} />
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
-                <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2">
-                  <Edit2 size={14} /> Sửa
-                </button>
-                <button onClick={() => { handleDeletePost(); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
-                  <Trash2 size={14} /> Xóa
-                </button>
-              </div>
-            )}
+            </motion.button>
+            <AnimatePresence>
+              {showMenu && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  className="absolute right-0 top-full mt-2 w-36 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 py-2 z-10"
+                >
+                  <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors">
+                    <Edit2 size={16} /> Chỉnh sửa
+                  </button>
+                  <button onClick={() => { handleDeletePost(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors">
+                    <Trash2 size={16} /> Xóa bài
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </div>
 
       {isEditing ? (
-        <div onClick={e => e.stopPropagation()} className="mb-3">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={e => e.stopPropagation()} className="mb-4">
           <textarea 
             value={editContent} 
             onChange={e => setEditContent(e.target.value)} 
-            className="w-full p-3 border border-blue-300 dark:border-blue-700 rounded-lg bg-blue-50/30 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+            className="w-full p-4 border border-blue-200 dark:border-blue-900/50 rounded-2xl bg-blue-50/50 dark:bg-slate-900/50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white resize-none"
             rows={3}
           />
-          <div className="flex justify-end gap-2 mt-2">
-            <button onClick={() => setIsEditing(false)} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1"><X size={14}/> Hủy</button>
-            <button onClick={handleUpdatePost} className="px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg flex items-center gap-1"><Check size={14}/> Lưu</button>
+          <div className="flex justify-end gap-3 mt-3">
+            <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl flex items-center gap-1 transition-colors"><X size={16}/> Hủy</button>
+            <button onClick={handleUpdatePost} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-xl flex items-center gap-1 shadow-md shadow-blue-500/20 transition-all"><Check size={16}/> Lưu thay đổi</button>
           </div>
-        </div>
+        </motion.div>
       ) : (
-        <p className="text-gray-800 dark:text-gray-200 mb-3 whitespace-pre-line leading-relaxed text-[15px]">
+        <p className="text-gray-800 dark:text-gray-200 mb-4 whitespace-pre-line leading-relaxed text-[16px]">
           {post.content}
         </p>
       )}
 
       {/* Shared Post Content */}
       {isShared && post.originalPost && (
-        <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-3 mb-3 bg-gray-50 dark:bg-slate-900/50 cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/post/${post.originalPost?.id}`); }}>
-          <div className="flex items-center gap-2 mb-2">
+        <motion.div 
+          whileHover={{ scale: 0.99 }}
+          className="border border-gray-200 dark:border-slate-700 rounded-2xl p-4 mb-4 bg-gray-50 dark:bg-slate-900/50 cursor-pointer overflow-hidden" 
+          onClick={(e) => { e.stopPropagation(); navigate(`/post/${post.originalPost?.id}`); }}
+        >
+          <div className="flex items-center gap-2 mb-3">
             <img src={post.originalPost.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.originalPost.author.name)}&background=random`} className="w-6 h-6 rounded-full" />
-            <span className="font-bold text-sm text-gray-900 dark:text-white">{post.originalPost.author.name}</span>
-            <span className="text-xs text-gray-500">@{post.originalPost.author.username}</span>
+            <span className="font-bold text-sm text-gray-900 dark:text-white hover:underline">{post.originalPost.author.name}</span>
+            <span className="text-xs text-gray-500 font-medium">@{post.originalPost.author.username}</span>
           </div>
-          <p className="text-gray-800 dark:text-gray-200 text-sm mb-2 line-clamp-3">{post.originalPost.content}</p>
+          <p className="text-gray-800 dark:text-gray-200 text-[15px] mb-3 line-clamp-3">{post.originalPost.content}</p>
           {post.originalPost.image && (
-            <div className="rounded-lg overflow-hidden h-40">
+            <div className="rounded-xl overflow-hidden h-48 -mx-4 -mb-4">
               <img src={post.originalPost.image} className="w-full h-full object-cover" />
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {isShared && !post.originalPost && (
-        <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-3 bg-gray-100 dark:bg-slate-800 text-gray-500 text-sm italic">Bài viết gốc đã bị xóa hoặc không tồn tại.</div>
+        <div className="border border-gray-200 dark:border-slate-700 rounded-2xl p-4 mb-4 bg-gray-100 dark:bg-slate-800/80 text-gray-500 text-sm font-medium italic">Bài viết gốc đã bị xóa hoặc không còn tồn tại.</div>
       )}
 
-      {post.image && (
-        <div className="mb-4 rounded-xl overflow-hidden border border-gray-100 dark:border-slate-700">
-          <img src={post.image} alt="Post content" className="w-full h-auto object-cover max-h-[500px]" />
-        </div>
-      )}
+      <ImageGrid images={post.images?.length ? post.images : (post.image ? [post.image] : [])} />
 
-      <ReactionBar 
-        likes={post.likes} 
-        comments={post.comments} 
-        shares={post.shares}
-        userReaction={myReaction}
-        onReaction={handleReaction}
-        onShare={handleShare}
-        onComment={() => navigate(`/post/${post.id}`)}
-      />
-    </div>
+      <div className="pt-2 border-t border-gray-100 dark:border-slate-700/50">
+        <ReactionBar 
+          likes={post.likes} 
+          comments={post.comments} 
+          shares={post.shares}
+          userReaction={myReaction}
+          onReaction={handleReaction}
+          onShare={handleShare}
+          onComment={() => navigate(`/post/${post.id}`)}
+        />
+      </div>
+    </motion.div>
   );
 };
 

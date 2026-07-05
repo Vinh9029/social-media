@@ -22,7 +22,7 @@ router.get('/unread-count', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-    const { recipientId, content } = req.body;
+    const { recipientId, content, image, replyTo } = req.body;
 
     // Check blocking
     const sender = await User.findById(req.user.id);
@@ -35,11 +35,20 @@ router.post('/', auth, async (req, res) => {
     const newMessage = new Message({
       sender: req.user.id,
       recipient: recipientId,
-      content
+      content,
+      image: image || '',
+      replyTo: replyTo || null
     });
     const savedMessage = await newMessage.save();
     await savedMessage.populate('sender', 'username full_name avatar_url');
     await savedMessage.populate('recipient', 'username full_name avatar_url');
+    if (savedMessage.replyTo) {
+      await savedMessage.populate({
+        path: 'replyTo',
+        select: 'content sender image',
+        populate: { path: 'sender', select: 'username full_name' }
+      });
+    }
     
     res.json({
       id: savedMessage._id,
@@ -56,6 +65,17 @@ router.post('/', auth, async (req, res) => {
         avatar: savedMessage.recipient.avatar_url
       },
       content: savedMessage.content,
+      image: savedMessage.image,
+      replyTo: savedMessage.replyTo ? {
+        id: savedMessage.replyTo._id,
+        content: savedMessage.replyTo.content,
+        image: savedMessage.replyTo.image,
+        sender: {
+          id: savedMessage.replyTo.sender._id,
+          name: savedMessage.replyTo.sender.full_name
+        }
+      } : null,
+      reactions: savedMessage.reactions,
       createdAt: savedMessage.createdAt,
       read: savedMessage.read
     });
@@ -137,7 +157,12 @@ router.get('/:partnerId', auth, async (req, res) => {
     })
     .sort({ createdAt: 1 })
     .populate('sender', 'username full_name avatar_url')
-    .populate('recipient', 'username full_name avatar_url');
+    .populate('recipient', 'username full_name avatar_url')
+    .populate({
+      path: 'replyTo',
+      select: 'content sender image',
+      populate: { path: 'sender', select: 'username full_name' }
+    });
     
     const formattedMessages = messages.map(msg => ({
       id: msg._id,
@@ -154,11 +179,54 @@ router.get('/:partnerId', auth, async (req, res) => {
         avatar: msg.recipient.avatar_url
       } : null,
       content: msg.content,
+      image: msg.image,
+      replyTo: msg.replyTo ? {
+        id: msg.replyTo._id,
+        content: msg.replyTo.content,
+        image: msg.replyTo.image,
+        sender: {
+          id: msg.replyTo.sender?._id,
+          name: msg.replyTo.sender?.full_name
+        }
+      } : null,
+      reactions: msg.reactions || [],
       createdAt: msg.createdAt,
       read: msg.read
     }));
 
     res.json(formattedMessages);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// React vào tin nhắn
+router.post('/:messageId/react', auth, async (req, res) => {
+  try {
+    const { type } = req.body;
+    const message = await Message.findById(req.params.messageId);
+    if (!message) return res.status(404).json({ msg: 'Tin nhắn không tồn tại' });
+
+    const existingIndex = message.reactions.findIndex(
+      r => r.user.toString() === req.user.id
+    );
+
+    if (existingIndex > -1) {
+      if (message.reactions[existingIndex].type === type) {
+        // Hủy react nếu click cùng loại
+        message.reactions.splice(existingIndex, 1);
+      } else {
+        // Thay đổi icon react
+        message.reactions[existingIndex].type = type;
+      }
+    } else {
+      // Thêm react mới
+      message.reactions.push({ user: req.user.id, type });
+    }
+
+    await message.save();
+    res.json(message.reactions);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');

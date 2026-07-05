@@ -6,9 +6,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Post, Comment } from '../types';
 import { API_URL } from '../config';
 import ReactionBar from '../components/ReactionBar';
+import { motion } from 'framer-motion';
 
-export default function PostDetail() {
-  const { postId } = useParams();
+interface PostDetailProps {
+  propPostId?: string;
+  onClose?: () => void;
+}
+
+export default function PostDetail({ propPostId, onClose }: PostDetailProps = {}) {
+  const { postId: paramPostId } = useParams();
+  const postId = propPostId || paramPostId;
   const navigate = useNavigate();
   const { user } = useAuth();
   const [post, setPost] = useState<Post | null>(null);
@@ -19,6 +26,7 @@ export default function PostDetail() {
 
   useEffect(() => {
     if (postId) {
+      setLoading(true);
       // Fetch Post
       fetch(`${API_URL}/api/posts/${postId}`)
         .then(res => {
@@ -29,6 +37,7 @@ export default function PostDetail() {
           setPost({
             ...data,
             id: data._id || data.id,
+            image: data.image || data.image_url,
             author: data.author ? { ...data.author, id: data.author._id || data.author.id } : { id: 'unknown', name: 'Unknown', username: 'unknown', avatar: '' }
           });
         })
@@ -197,101 +206,140 @@ export default function PostDetail() {
     );
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Loading...</div>;
-  if (!post) return <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white">Post not found</div>;
+  if (loading) {
+    return (
+      <div className={propPostId ? "p-10 flex items-center justify-center text-white" : "min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white"}>
+        Đang tải bài viết...
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className={propPostId ? "p-10 flex items-center justify-center text-white" : "min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-gray-900 dark:text-white"}>
+        Không tìm thấy bài viết
+      </div>
+    );
+  }
 
   const myReaction = post.reactions?.find(r => r.user === user?.id)?.type;
   const rootComments = buildCommentTree(comments);
   const isShared = !!post.originalPost;
+
+  const mainContent = (
+    <div className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-200/50 dark:border-slate-700 overflow-hidden transition-colors ${propPostId ? 'max-h-[80vh] overflow-y-auto' : ''}`}>
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-start space-x-3">
+            <div onClick={() => navigate(`/profile/${post.author.id}`)} className="w-12 h-12 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer overflow-hidden">{post.author.avatar ? <img src={post.author.avatar} className="w-full h-full object-cover" /> : <User className="w-7 h-7 text-gray-600 dark:text-gray-400" />}</div>
+            <div>
+              <h3 onClick={() => navigate(`/profile/${post.author.id}`)} className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:underline">{post.author.name}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                @{post.author.username} • {formatDistanceToNow(post.timestamp)}
+                {isShared && <span className="ml-1 text-gray-500">• Đã chia sẻ một bài viết</span>}
+              </p>
+            </div>
+          </div>
+          {propPostId && (
+            <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-150 dark:hover:bg-slate-700 rounded-full transition-colors">
+              <X size={20} />
+            </button>
+          )}
+        </div>
+        <p className="text-gray-700 dark:text-gray-300 text-lg whitespace-pre-wrap mb-4">{post.content}</p>
+        
+        {/* Shared Post Content */}
+        {isShared && post.originalPost && (
+          <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-4 bg-gray-50 dark:bg-slate-900/50 cursor-pointer" onClick={() => navigate(`/post/${post.originalPost?.id}`)}>
+            <div className="flex items-center gap-2 mb-2">
+              <img src={post.originalPost.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.originalPost.author.name)}&background=random`} className="w-8 h-8 rounded-full" />
+              <span className="font-bold text-gray-900 dark:text-white">{post.originalPost.author.name}</span>
+              <span className="text-sm text-gray-500">@{post.originalPost.author.username}</span>
+            </div>
+            <p className="text-gray-800 dark:text-gray-200 mb-3">{post.originalPost.content}</p>
+            {post.originalPost.image && (
+              <div className="rounded-lg overflow-hidden">
+                <img src={post.originalPost.image} className="w-full h-auto object-cover max-h-[400px]" />
+              </div>
+            )}
+          </div>
+        )}
+        {isShared && !post.originalPost && (
+          <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-4 bg-gray-100 dark:bg-slate-800 text-gray-500 italic">Bài viết gốc đã bị xóa hoặc không tồn tại.</div>
+        )}
+
+        {/* Hiển thị ảnh bài viết */}
+        {post.image && (
+          <div className="rounded-xl overflow-hidden mb-4 border border-gray-100 dark:border-slate-700">
+            <img src={post.image} alt="Post content" className="w-full h-auto object-cover max-h-[600px]" />
+          </div>
+        )}
+
+        <ReactionBar 
+          likes={post.likes} 
+          comments={comments.length} 
+          shares={post.shares}
+          userReaction={myReaction}
+          onReaction={handleReaction}
+        />
+      </div>
+
+      <div className="border-t border-gray-200 dark:border-slate-700 p-6 bg-gray-50 dark:bg-slate-800/50">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 font-bold">Bình luận ({comments.length})</h3>
+        
+        {/* Comment Input */}
+        <form onSubmit={handleSubmitComment} className="mb-6 sticky top-0 z-10 bg-gray-50 dark:bg-slate-900/10 backdrop-blur-sm pb-2">
+          {replyingTo && (
+            <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg mb-2 text-sm">
+              <span className="text-blue-600 dark:text-blue-400">Đang trả lời <b>{replyingTo.author.name}</b></span>
+              <button type="button" onClick={() => setReplyingTo(null)}><X size={14} className="text-gray-500" /></button>
+            </div>
+          )}
+          <div className="flex space-x-3">
+            <input 
+              type="text" 
+              value={newComment} 
+              onChange={(e) => setNewComment(e.target.value)} 
+              placeholder={replyingTo ? "Viết phản hồi..." : "Viết bình luận..."}
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-slate-650 rounded-2xl bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            />
+            <button type="submit" disabled={!newComment.trim()} className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl disabled:opacity-50 transition-colors shadow-md shadow-blue-500/20"><Send className="w-4 h-4" /></button>
+          </div>
+        </form>
+        
+        {/* Comment Tree */}
+        <div className="space-y-1">
+          {rootComments.map((comment) => (
+            <CommentItem key={comment.id} comment={comment} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (propPostId) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="w-full max-w-3xl"
+        >
+          {mainContent}
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-900 transition-colors">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <button onClick={() => navigate(-1)} className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6">
           <ArrowLeft className="w-5 h-5" />
-          <span>Back</span>
+          <span>Quay lại</span>
         </button>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200/50 dark:border-slate-700 overflow-hidden transition-colors">
-          <div className="p-6">
-            <div className="flex items-start space-x-3 mb-4">
-              <div onClick={() => navigate(`/profile/${post.author.id}`)} className="w-12 h-12 bg-gray-300 dark:bg-slate-700 rounded-full flex items-center justify-center cursor-pointer overflow-hidden">{post.author.avatar ? <img src={post.author.avatar} className="w-full h-full object-cover" /> : <User className="w-7 h-7 text-gray-600 dark:text-gray-400" />}</div>
-              <div>
-                <h3 onClick={() => navigate(`/profile/${post.author.id}`)} className="font-semibold text-gray-900 dark:text-white text-lg cursor-pointer hover:underline">{post.author.name}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {isShared && <span className="ml-1 text-gray-500">• Đã chia sẻ một bài viết</span>}
-                </p>
-              </div>
-            </div>
-            <p className="text-gray-700 dark:text-gray-300 text-lg whitespace-pre-wrap mb-4">{post.content}</p>
-            
-            {/* Shared Post Content */}
-            {isShared && post.originalPost && (
-              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-4 bg-gray-50 dark:bg-slate-900/50 cursor-pointer" onClick={() => navigate(`/post/${post.originalPost?.id}`)}>
-                <div className="flex items-center gap-2 mb-2">
-                  <img src={post.originalPost.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.originalPost.author.name)}&background=random`} className="w-8 h-8 rounded-full" />
-                  <span className="font-bold text-gray-900 dark:text-white">{post.originalPost.author.name}</span>
-                  <span className="text-sm text-gray-500">@{post.originalPost.author.username}</span>
-                </div>
-                <p className="text-gray-800 dark:text-gray-200 mb-3">{post.originalPost.content}</p>
-                {post.originalPost.image && (
-                  <div className="rounded-lg overflow-hidden">
-                    <img src={post.originalPost.image} className="w-full h-auto object-cover max-h-[400px]" />
-                  </div>
-                )}
-              </div>
-            )}
-            {isShared && !post.originalPost && (
-              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 mb-4 bg-gray-100 dark:bg-slate-800 text-gray-500 italic">Bài viết gốc đã bị xóa hoặc không tồn tại.</div>
-            )}
-
-            {/* Hiển thị ảnh bài viết */}
-            {post.image && (
-              <div className="rounded-xl overflow-hidden mb-4 border border-gray-100 dark:border-slate-700">
-                <img src={post.image} alt="Post content" className="w-full h-auto object-cover max-h-[600px]" />
-              </div>
-            )}
-
-            <ReactionBar 
-              likes={post.likes} 
-              comments={comments.length} 
-              shares={post.shares}
-              userReaction={myReaction}
-              onReaction={handleReaction}
-            />
-          </div>
-
-          <div className="border-t border-gray-200 dark:border-slate-700 p-6 bg-gray-50 dark:bg-slate-800/50">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comments ({comments.length})</h3>
-            
-            {/* Comment Input */}
-            <form onSubmit={handleSubmitComment} className="mb-6 sticky top-0 z-10 bg-gray-50 dark:bg-slate-800/50 pb-2">
-              {replyingTo && (
-                <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg mb-2 text-sm">
-                  <span className="text-blue-600 dark:text-blue-400">Replying to <b>{replyingTo.author.name}</b></span>
-                  <button type="button" onClick={() => setReplyingTo(null)}><X size={14} className="text-gray-500" /></button>
-                </div>
-              )}
-              <div className="flex space-x-3">
-                <input 
-                  type="text" 
-                  value={newComment} 
-                  onChange={(e) => setNewComment(e.target.value)} 
-                  placeholder={replyingTo ? "Write a reply..." : "Write a comment..."}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                />
-                <button type="submit" disabled={!newComment.trim()} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"><Send className="w-4 h-4" /></button>
-              </div>
-            </form>
-            
-            {/* Comment Tree */}
-            <div className="space-y-1">
-              {rootComments.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} />
-              ))}
-            </div>
-          </div>
-        </div>
+        {mainContent}
       </div>
     </div>
   );
