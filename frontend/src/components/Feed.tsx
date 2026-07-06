@@ -41,13 +41,8 @@ const StoryDetailViewer: React.FC<StoryDetailViewerProps> = ({ stories, activeIn
   }, [activeIndex, currentStory]);
 
   useEffect(() => {
-<<<<<<< HEAD
-    let interval: any;
-    const step = 50;
-=======
     let interval: ReturnType<typeof setInterval>;
-    const step = 50; 
->>>>>>> 574b64b5e09e1b8d7f8409706af68b790c2f4cc3
+    const step = 50;
     interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {

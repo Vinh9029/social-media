@@ -64,7 +64,6 @@ export interface Message {
   reactions?: { user: string; type: string }[];
   timestamp?: string;
   createdAt: string;
-  timestamp?: string;
   read: boolean; // Trạng thái đã đọc
 }
 
