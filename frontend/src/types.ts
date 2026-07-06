@@ -63,6 +63,7 @@ export interface Message {
   } | null;
   reactions?: { user: string; type: string }[];
   createdAt: string;
+  timestamp?: string;
   read: boolean; // Trạng thái đã đọc
 }
 

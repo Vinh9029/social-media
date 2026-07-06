@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Image, Send, X, Loader2, LogIn, Plus, PlusCircle, Video } from 'lucide-react';
+import { Image, Send, X, Loader2, LogIn, Plus, PlusCircle, Video, Database } from 'lucide-react';
 import PostCard from './PostCard';
 import { Post } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,7 +30,7 @@ interface StoryDetailViewerProps {
 const StoryDetailViewer: React.FC<StoryDetailViewerProps> = ({ stories, activeIndex, onClose, onNext, onPrev }) => {
   const currentStory = stories[activeIndex];
   const [progress, setProgress] = useState(0);
-  const [storyDuration, setStoryDuration] = useState(5000); 
+  const [storyDuration, setStoryDuration] = useState(5000);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -41,8 +41,8 @@ const StoryDetailViewer: React.FC<StoryDetailViewerProps> = ({ stories, activeIn
   }, [activeIndex, currentStory]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    const step = 50; 
+    let interval: any;
+    const step = 50;
     interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
@@ -70,10 +70,10 @@ const StoryDetailViewer: React.FC<StoryDetailViewerProps> = ({ stories, activeIn
       <div className="absolute top-4 left-4 right-4 flex gap-1 z-20">
         {stories.map((s, idx) => (
           <div key={s.id} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-white transition-all duration-75"
-              style={{ 
-                width: idx === activeIndex ? `${progress}%` : idx < activeIndex ? '100%' : '0%' 
+              style={{
+                width: idx === activeIndex ? `${progress}%` : idx < activeIndex ? '100%' : '0%'
               }}
             />
           </div>
@@ -92,18 +92,18 @@ const StoryDetailViewer: React.FC<StoryDetailViewerProps> = ({ stories, activeIn
 
       <div className="w-full max-w-lg h-full flex items-center justify-center p-4">
         {currentStory.type === 'video' ? (
-          <video 
+          <video
             ref={videoRef}
-            src={currentStory.media} 
-            autoPlay 
+            src={currentStory.media}
+            autoPlay
             playsInline
             onLoadedMetadata={handleVideoMetadata}
-            className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl" 
+            className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl"
           />
         ) : (
-          <img 
-            src={currentStory.media} 
-            className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl" 
+          <img
+            src={currentStory.media}
+            className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl"
             alt="story"
           />
         )}
@@ -127,13 +127,9 @@ const Feed = () => {
   const [isPosting, setIsPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [stories, setStories] = useState<Story[]>([
-    { id: 's1', user: { name: 'Anh Vinh', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100' }, media: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300', type: 'image' },
-    { id: 's2', user: { name: 'Thảo Vy', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' }, media: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300', type: 'image' },
-    { id: 's3', user: { name: 'Nam Phong', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' }, media: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300', type: 'image' },
-  ]);
+  const [stories, setStories] = useState<Story[]>([]);
   const [showStoryModal, setShowStoryModal] = useState(false);
-  
+
   const [storyFile, setStoryFile] = useState<File | null>(null);
   const [storyPreviewUrl, setStoryPreviewUrl] = useState<string | null>(null);
   const [storyFileType, setStoryFileType] = useState<'image' | 'video' | null>(null);
@@ -153,8 +149,8 @@ const Feed = () => {
             ...p,
             id: p._id || p.id,
             image: p.image || p.image_url,
-            author: p.author ? { 
-              ...p.author, 
+            author: p.author ? {
+              ...p.author,
               id: p.author._id || p.author.id,
               name: p.author.name || p.author.full_name || 'Unknown User',
               avatar: p.author.avatar || p.author.avatar_url
@@ -175,9 +171,7 @@ const Feed = () => {
         const res = await fetch(`${API_URL}/api/stories`);
         if (res.ok) {
           const data = await res.json();
-          if (data && data.length > 0) {
-            setStories(data);
-          }
+          setStories(data || []);
         }
       } catch (error) {
         console.error('Error fetching stories:', error);
@@ -231,12 +225,12 @@ const Feed = () => {
 
       const postRes = await fetch(`${API_URL}/api/posts`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': token || '' 
+          'x-auth-token': token || ''
         },
-        body: JSON.stringify({ 
-          content, 
+        body: JSON.stringify({
+          content,
           image_url: imageUrl,
           title: ''
         })
@@ -248,7 +242,7 @@ const Feed = () => {
         ...newPost,
         id: newPost._id || newPost.id,
         image: newPost.image || newPost.image_url,
-        author: (newPost.author && typeof newPost.author === 'object') 
+        author: (newPost.author && typeof newPost.author === 'object')
           ? { ...newPost.author, id: newPost.author._id || newPost.author.id, name: newPost.author.name || newPost.author.full_name || user?.name, avatar: newPost.author.avatar || newPost.author.avatar_url || user?.avatar }
           : { id: user.id, name: user.name, username: user.username, avatar: user.avatar },
         timestamp: newPost.timestamp || newPost.createdAt || new Date().toISOString(),
@@ -360,15 +354,15 @@ const Feed = () => {
         <h3 className="text-sm font-bold text-gray-400 dark:text-gray-400 mb-3 uppercase tracking-wider">Tin nổi bật & Reels</h3>
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none custom-scrollbar">
           {user && (
-            <motion.div 
+            <motion.div
               whileHover={{ scale: 1.02 }}
               onClick={() => setShowStoryModal(true)}
               className="w-28 h-40 flex-shrink-0 bg-slate-800 rounded-2xl overflow-hidden border border-white/5 relative cursor-pointer flex flex-col justify-end"
             >
-              <img 
-                src={user?.avatar || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100"} 
-                className="absolute inset-0 w-full h-2/3 object-cover opacity-60" 
-                alt="my avatar" 
+              <img
+                src={user?.avatar || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100"}
+                className="absolute inset-0 w-full h-2/3 object-cover opacity-60"
+                alt="my avatar"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
               <div className="h-1/3 bg-slate-800 flex flex-col items-center justify-center relative pb-2 z-10">
@@ -380,8 +374,19 @@ const Feed = () => {
             </motion.div>
           )}
 
+          {loading && stories.length === 0 && (
+            <>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-28 h-40 flex-shrink-0 rounded-2xl bg-slate-200 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50 animate-pulse relative">
+                  <div className="absolute top-2 left-2 w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700" />
+                  <div className="absolute bottom-2 left-2 right-2 h-3 bg-slate-300 dark:bg-slate-700 rounded-md w-3/4 mx-auto" />
+                </div>
+              ))}
+            </>
+          )}
+
           {stories.map((story, index) => (
-            <motion.div 
+            <motion.div
               key={story.id}
               whileHover={{ scale: 1.02 }}
               onClick={() => setActiveStoryIndex(index)}
@@ -393,7 +398,7 @@ const Feed = () => {
                 <img src={story.media} className="absolute inset-0 w-full h-full object-cover" alt="story media" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-              
+
               <div className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-blue-500 overflow-hidden shadow-md">
                 <img src={story.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.user.name)}&background=random`} alt="user" className="w-full h-full object-cover" />
               </div>
@@ -436,14 +441,14 @@ const Feed = () => {
               )}
               <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100 dark:border-slate-700/60">
                 <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
-                <button 
+                <button
                   onClick={() => user ? fileInputRef.current?.click() : handleAuthRequired()}
                   className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-3 py-2 rounded-lg transition-all duration-300 text-sm font-semibold active:scale-95"
                 >
                   <Image size={18} />
                   <span>Ảnh/Video</span>
                 </button>
-                <button 
+                <button
                   onClick={handlePostSubmit}
                   disabled={(!content.trim() && !selectedImage) || isPosting}
                   className="bg-gradient-to-r from-blue-600 to-indigo-500 text-white px-6 py-2 rounded-xl font-semibold hover:opacity-95 transition-all shadow-md shadow-blue-500/20 flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -462,7 +467,7 @@ const Feed = () => {
           </div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Chia sẻ câu chuyện của bạn</h3>
           <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">Đăng nhập để viết bài, chia sẻ ảnh và kết nối với cộng đồng.</p>
-          <button 
+          <button
             onClick={() => navigate('/login')}
             className="bg-gradient-to-r from-blue-600 to-indigo-500 text-white px-6 py-2.5 rounded-xl font-semibold hover:opacity-95 transition-all shadow-md shadow-blue-500/20 active:scale-95"
           >
@@ -473,13 +478,59 @@ const Feed = () => {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-10 text-gray-500">Đang tải bài viết...</div>
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-3xl p-5 mb-4 backdrop-blur-md flex gap-4 shadow-sm"
+            >
+              <div className="p-3 bg-blue-500/10 dark:bg-blue-400/10 rounded-2xl text-blue-600 dark:text-blue-400 shrink-0 flex items-center justify-center">
+                <Database size={22} className="animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm mb-1">
+                  Đang kết nối tới máy chủ...
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Hệ thống đang đồng bộ dữ liệu từ server. Quá trình này có thể mất vài giây để tải tài nguyên lần đầu. Vui lòng đợi trong giây lát!
+                </p>
+              </div>
+              <div className="shrink-0 flex items-center">
+                <Loader2 size={16} className="animate-spin text-blue-500" />
+              </div>
+            </motion.div>
+
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl p-5 border border-slate-100 dark:border-slate-700/60 shadow-sm animate-pulse space-y-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-3.5 bg-slate-200 dark:bg-slate-700 rounded w-1/4" />
+                    <div className="h-2.5 bg-slate-200 dark:bg-slate-700 rounded w-1/6" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3.5 bg-slate-200 dark:bg-slate-700 rounded w-full" />
+                  <div className="h-3.5 bg-slate-200 dark:bg-slate-700 rounded w-4/5" />
+                </div>
+                <div className="h-44 bg-slate-200/60 dark:bg-slate-700/50 rounded-2xl w-full" />
+                <div className="flex justify-between items-center pt-2">
+                  <div className="h-8 bg-slate-200/80 dark:bg-slate-700/60 rounded-xl w-20" />
+                  <div className="h-8 bg-slate-200/80 dark:bg-slate-700/60 rounded-xl w-20" />
+                  <div className="h-8 bg-slate-200/80 dark:bg-slate-700/60 rounded-xl w-20" />
+                </div>
+              </div>
+            ))}
+          </>
         ) : posts.length > 0 ? (
           posts.map((post) => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              onDelete={handleDeletePost} 
+            <PostCard
+              key={post.id}
+              post={post}
+              onDelete={handleDeletePost}
               onPostClick={(id) => setSelectedDetailPostId(id)}
             />
           ))
@@ -491,7 +542,7 @@ const Feed = () => {
       <AnimatePresence>
         {showStoryModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -503,17 +554,17 @@ const Feed = () => {
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-400 mb-2">Chọn tệp hình ảnh hoặc video</label>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   ref={storyFileInputRef}
                   onChange={handleStoryFileSelect}
                   accept="image/*,video/*"
                   className="hidden"
                 />
-                <button 
+                <button
                   onClick={() => storyFileInputRef.current?.click()}
                   className="w-full h-32 border-2 border-dashed border-gray-600 rounded-2xl flex flex-col items-center justify-center hover:bg-slate-700/30 transition-all text-gray-400 group"
                 >
@@ -532,7 +583,7 @@ const Feed = () => {
                 </div>
               )}
 
-              <button 
+              <button
                 onClick={handleCreateStory}
                 disabled={!storyFile || isUploadingStory}
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-500 text-white py-3.5 rounded-2xl font-bold hover:opacity-95 transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
@@ -546,7 +597,7 @@ const Feed = () => {
       </AnimatePresence>
 
       {activeStoryIndex !== null && (
-        <StoryDetailViewer 
+        <StoryDetailViewer
           stories={stories}
           activeIndex={activeStoryIndex}
           onClose={() => setActiveStoryIndex(null)}
@@ -557,9 +608,9 @@ const Feed = () => {
 
       <AnimatePresence>
         {selectedDetailPostId && (
-          <PostDetail 
-            propPostId={selectedDetailPostId} 
-            onClose={() => setSelectedDetailPostId(null)} 
+          <PostDetail
+            propPostId={selectedDetailPostId}
+            onClose={() => setSelectedDetailPostId(null)}
           />
         )}
       </AnimatePresence>
