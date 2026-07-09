@@ -79,7 +79,7 @@ const Messages = () => {
   const [aiTyping, setAiTyping] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
   const aiMessagesEndRef = useRef<HTMLDivElement>(null);
-  const aiSettingsRef = useRef<HTMLDivElement>(null);
+  const [showAiSettings, setShowAiSettings] = useState(false);
 
   const isAiChat = selectedChat === AI_CHATBOT_ID;
 
@@ -524,7 +524,7 @@ const Messages = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => aiSettingsRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                    onClick={() => setShowAiSettings(true)}
                     className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-purple-400"
                     title="Cài đặt API key"
                   >
@@ -547,49 +547,76 @@ const Messages = () => {
 
               {/* AI Messages List */}
               <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 bg-gradient-to-b from-slate-950 to-slate-900 scroll-smooth">
-                {/* AI Settings Section */}
-                <div ref={aiSettingsRef} className="bg-slate-800/50 border border-white/5 rounded-2xl p-4 mb-6 scroll-mt-20">
-                  <h4 className="text-sm font-bold text-purple-400 mb-3 flex items-center gap-2">
-                    <SettingsIcon size={16} /> Cấu hình AI
-                  </h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-1">Gemini API Key</label>
-                      <input 
-                        type="password" 
-                        defaultValue={localStorage.getItem('dx_chatbot_api_key') || ''}
-                        onChange={(e) => {
-                          localStorage.setItem('dx_chatbot_api_key', e.target.value);
-                          setHasApiKey(!!e.target.value);
-                        }}
-                        placeholder="Nhập API Key..." 
-                        className="w-full bg-slate-900 border border-white/10 text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-1">Model</label>
-                      <select 
-                        defaultValue={localStorage.getItem('dx_chatbot_model') || 'gemini-2.0-flash'}
-                        onChange={(e) => localStorage.setItem('dx_chatbot_model', e.target.value)}
-                        className="w-full bg-slate-900 border border-white/10 text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors"
+                <AnimatePresence>
+                  {showAiSettings && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative text-left"
                       >
-                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                        <button 
+                          onClick={() => setShowAiSettings(false)} 
+                          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                        >
+                          <X size={20} />
+                        </button>
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                          <SettingsIcon size={18} className="text-purple-400" /> Cấu hình AI Chatbot
+                        </h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">Gemini API Key</label>
+                            <input 
+                              type="password" 
+                              defaultValue={localStorage.getItem('dx_chatbot_api_key') || ''}
+                              onChange={(e) => {
+                                localStorage.setItem('dx_chatbot_api_key', e.target.value);
+                                setHasApiKey(!!e.target.value);
+                              }}
+                              placeholder="Nhập API Key..." 
+                              className="w-full bg-slate-800 border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500 transition-colors"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">Model</label>
+                            <select 
+                              defaultValue={localStorage.getItem('dx_chatbot_model') || 'gemini-2.0-flash'}
+                              onChange={(e) => localStorage.setItem('dx_chatbot_model', e.target.value)}
+                              className="w-full bg-slate-800 border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500 transition-colors"
+                            >
+                              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            </select>
+                          </div>
+                          <button
+                            onClick={() => setShowAiSettings(false)}
+                            className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-semibold transition-colors mt-2"
+                          >
+                            Đồng ý
+                          </button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* No API key warning */}
-                {!hasApiKey && (
+                 {!hasApiKey && (
                   <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-sm">
                     <AlertCircle size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-amber-300 font-semibold">Chưa có API key</p>
                       <p className="text-amber-400/80 text-xs mt-1">
-                        Vào{' '}
-                        <button onClick={() => navigate('/settings')} className="underline hover:text-amber-300">
-                          Cài đặt
+                        Vui lòng click nút{' '}
+                        <button onClick={() => setShowAiSettings(true)} className="underline hover:text-amber-300 font-bold">
+                          Cấu hình AI (⚙️)
                         </button>
                         {' '}để thêm Gemini API key và bắt đầu chat với DX Chatbot.
                       </p>
