@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 export default function Register() {
@@ -11,8 +11,8 @@ export default function Register() {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const { signUp } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,39 +25,20 @@ export default function Register() {
       return;
     }
 
-    const { error } = await signUp(email, password, username, fullName);
+    const { error, user } = await signUp(email, password, username, fullName);
 
     if (error) {
       setError(error.message || 'Đăng ký thất bại');
       setLoading(false);
     } else {
-      setSuccess(true);
       setLoading(false);
+      if (user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex bg-slate-900 overflow-hidden justify-center items-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="backdrop-blur-2xl bg-white/5 border border-white/10 rounded-[2rem] w-full max-w-md p-8 text-center shadow-2xl"
-        >
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-6 shadow-lg shadow-purple-500/20">
-            <UserPlus className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-2">Chào mừng bạn!</h2>
-          <p className="text-gray-300 mb-8">
-            Tài khoản của bạn đã được tạo thành công.
-          </p>
-          <Link to="/login" className="inline-block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.02]">
-            Đến trang Đăng nhập
-          </Link>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex bg-slate-900 overflow-hidden">

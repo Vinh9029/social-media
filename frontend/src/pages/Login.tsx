@@ -31,13 +31,17 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error, user } = await signIn(email, password);
 
     if (error) {
       setError(error.message || 'Failed to login');
       setLoading(false);
     } else {
-      navigate('/');
+      if (user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     }
   };
 

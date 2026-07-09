@@ -37,7 +37,9 @@ router.get('/me', auth, async (req, res) => {
       facebook: user.facebook,
       linkedin: user.linkedin,
       followers: user.followers,
-      following: user.following
+      following: user.following,
+      role: user.role,
+      status: user.status
     });
   } catch (err) {
     console.error(err.message);
@@ -130,11 +132,11 @@ router.put('/update', auth, async (req, res) => {
     });
 
     await user.save();
-    res.json({ 
-      id: user.id, 
-      username: user.username, 
-      email: user.email, 
-      name: user.full_name, 
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      name: user.full_name,
       avatar: user.avatar_url,
       bio: user.bio,
       cover: user.cover_url,
@@ -196,7 +198,7 @@ router.get('/google/callback', async (req, res) => {
       })
     });
     const tokenData = await tokenRes.json();
-    
+
     // Get User Info
     const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` }
@@ -209,7 +211,7 @@ router.get('/google/callback', async (req, res) => {
       const randomPassword = crypto.randomBytes(16).toString('hex');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(randomPassword, salt);
-      
+
       user = new User({
         username: userData.email.split('@')[0] + Math.floor(Math.random() * 1000),
         email: userData.email,
@@ -238,7 +240,7 @@ router.get('/google/callback', async (req, res) => {
 router.get('/github', (req, res) => {
   const redirectUri = process.env.GITHUB_CALLBACK_URL;
   const clientId = process.env.GITHUB_CLIENT_ID;
-  
+
   if (!clientId) {
     return res.status(500).send('Server Error: GITHUB_CLIENT_ID is missing');
   }
@@ -254,7 +256,7 @@ router.get('/github/callback', async (req, res) => {
     // Exchange code for token
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },

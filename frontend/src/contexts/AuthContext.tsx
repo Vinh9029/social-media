@@ -5,8 +5,8 @@ import { API_URL as BASE_URL } from '../config';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, username: string, fullName?: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; user?: User }>;
+  signUp: (email: string, password: string, username: string, fullName?: string) => Promise<{ error: any; user?: User }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<{ error: any }>;
 }
@@ -69,9 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem('token', data.token);
       setUser(data.user);
-      return { error: null };
+      return { error: null, user: data.user };
     } catch (error: any) {
-      return { error };
+      return { error, user: undefined };
     } finally {
       setLoading(false);
     }
@@ -98,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem('token', data.token);
       setUser(data.user);
-      return { error: null };
+      return { error: null, user: data.user };
     } catch (error: any) {
-      return { error };
+      return { error, user: undefined };
     } finally {
       setLoading(false);
     }
