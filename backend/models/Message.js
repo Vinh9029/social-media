@@ -21,7 +21,7 @@ const MessageSchema = new mongoose.Schema({
   reactions: [
     {
       user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      type: { type: String } // e.g. '👍', '❤️', '😆', '😮', '😢', '😡'
+      type: { type: String, enum: ['👍', '❤️', '😂', '😮', '😢', '😡'] } // Like, Love, Haha, Wow, Sad, Angry
     }
   ],
   read: { type: Boolean, default: false },

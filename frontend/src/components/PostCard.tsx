@@ -7,14 +7,22 @@ import { useToast } from '../contexts/ToastContext';
 import { API_URL } from '../config';
 import { formatDistanceToNow } from '../utils/dateUtils';
 import ReactionBar from './ReactionBar';
-import ImageGrid from './ImageGrid';
+import MediaCarousel from './MediaCarousel';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Editor } from '@tinymce/tinymce-react';
 
 interface PostCardProps {
   post: Post;
   onDelete?: (postId: string) => void;
   onPostClick?: (postId: string) => void;
 }
+
+// Helper: strip HTML tags for plain text display
+const stripHtml = (html: string) => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+};
 
 const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPostClick }) => {
   const { user } = useAuth();
@@ -27,6 +35,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const menuRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<any>(null);
   
   // Saved State
   const [isSaved, setIsSaved] = useState(false);
@@ -76,6 +85,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
   };
 
   const handleUpdatePost = async () => {
+    const content = editorRef.current ? editorRef.current.getContent() : editContent;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/api/posts/${post.id}`, {
@@ -84,7 +94,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
           'Content-Type': 'application/json',
           'x-auth-token': token || '' 
         },
-        body: JSON.stringify({ content: editContent })
+        body: JSON.stringify({ content })
       });
 
       if (res.ok) {
@@ -173,6 +183,9 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
   const isOwner = user && (user.id === post.author.id || user._id === post.author.id);
   const isShared = !!post.originalPost;
 
+  // Check if content is HTML (rich text)
+  const isHtmlContent = post.content?.startsWith('<') && post.content?.includes('>');
+
   return (
     <motion.div 
       layout
@@ -225,7 +238,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
                   className="absolute right-0 top-full mt-2 w-36 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 py-2 z-10"
                 >
-                  <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors">
+                  <button onClick={() => { setEditContent(post.content); setIsEditing(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors">
                     <Edit2 size={16} /> Chỉnh sửa
                   </button>
                   <button onClick={() => { handleDeletePost(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors">
@@ -239,22 +252,56 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
       </div>
 
       {isEditing ? (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={e => e.stopPropagation()} className="mb-4">
-          <textarea 
-            value={editContent} 
-            onChange={e => setEditContent(e.target.value)} 
-            className="w-full p-4 border border-blue-200 dark:border-blue-900/50 rounded-2xl bg-blue-50/50 dark:bg-slate-900/50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white resize-none"
-            rows={3}
-          />
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          onClick={e => e.stopPropagation()} 
+          className="mb-4"
+        >
+          {/* TinyMCE Rich Text Editor */}
+          <div className="rounded-2xl overflow-hidden border border-blue-200 dark:border-blue-900/50 shadow-sm">
+            <Editor
+              tinymceScriptSrc="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js"
+              onInit={(evt, editor) => { editorRef.current = editor; }}
+              initialValue={post.content}
+              init={{
+                height: 200,
+                menubar: false,
+                branding: false,
+                statusbar: false,
+                plugins: ['lists', 'link', 'emoticons', 'wordcount'],
+                toolbar: 'bold italic underline | bullist numlist | link emoticons | removeformat',
+                content_style: `
+                  body {
+                    font-family: ui-sans-serif, system-ui, sans-serif;
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: #1f2937;
+                    margin: 12px;
+                    background: transparent;
+                  }
+                `,
+                skin: 'oxide',
+                content_css: 'default',
+              }}
+            />
+          </div>
           <div className="flex justify-end gap-3 mt-3">
             <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl flex items-center gap-1 transition-colors"><X size={16}/> Hủy</button>
             <button onClick={handleUpdatePost} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-xl flex items-center gap-1 shadow-md shadow-blue-500/20 transition-all"><Check size={16}/> Lưu thay đổi</button>
           </div>
         </motion.div>
       ) : (
-        <p className="text-gray-800 dark:text-gray-200 mb-4 whitespace-pre-line leading-relaxed text-[16px]">
-          {post.content}
-        </p>
+        isHtmlContent ? (
+          <div 
+            className="text-gray-800 dark:text-gray-200 mb-4 leading-relaxed text-[16px] prose prose-sm dark:prose-invert max-w-none"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+        ) : (
+          <p className="text-gray-800 dark:text-gray-200 mb-4 whitespace-pre-line leading-relaxed text-[16px]">
+            {post.content}
+          </p>
+        )
       )}
 
       {/* Shared Post Content */}
@@ -282,7 +329,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
         <div className="border border-gray-200 dark:border-slate-700 rounded-2xl p-4 mb-4 bg-gray-100 dark:bg-slate-800/80 text-gray-500 text-sm font-medium italic">Bài viết gốc đã bị xóa hoặc không còn tồn tại.</div>
       )}
 
-      <ImageGrid images={post.images?.length ? post.images : (post.image ? [post.image] : [])} />
+      <MediaCarousel mediaUrls={post.images?.length ? post.images : (post.image ? [post.image] : [])} />
 
       <div className="pt-2 border-t border-gray-100 dark:border-slate-700/50">
         <ReactionBar 

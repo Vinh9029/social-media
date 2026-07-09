@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Send, Search, MoreVertical, Phone, Video, ArrowLeft, Ban, Palette, Image as ImageIcon, Smile, X, Reply, CornerUpLeft } from 'lucide-react';
+import { Mail, Send, Search, MoreVertical, Phone, Video, ArrowLeft, Ban, Palette, Image as ImageIcon, Smile, X, Reply, CornerUpLeft, Bot, Sparkles, AlertCircle, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -9,7 +9,38 @@ import { formatDistanceToNow } from '../utils/dateUtils';
 import ChatThemeModal, { ThemeConfig } from '../components/ChatThemeModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const EMOJIS = ['🍌', '❤️', '😆', '😮', '😢', '😡'];
+const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+
+const AI_CHATBOT_ID = 'dx-chatbot';
+const CHATBOT_STORAGE_KEY = 'dx_chatbot_messages';
+
+interface AiMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  isAnimated?: boolean;
+}
+
+const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () => void }) => {
+  const [displayedText, setDisplayedText] = useState('');
+
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(text.substring(0, i));
+      i += 2;
+      if (i > text.length) {
+        clearInterval(interval);
+        setDisplayedText(text);
+        if (onComplete) onComplete();
+      }
+    }, 15);
+    return () => clearInterval(interval);
+  }, [text, onComplete]);
+
+  return <>{displayedText}</>;
+};
 
 const Messages = () => {
   const { user } = useAuth();
@@ -42,6 +73,35 @@ const Messages = () => {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // AI Chatbot states
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
+  const [aiInput, setAiInput] = useState('');
+  const [aiTyping, setAiTyping] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+  const aiMessagesEndRef = useRef<HTMLDivElement>(null);
+  const aiSettingsRef = useRef<HTMLDivElement>(null);
+
+  const isAiChat = selectedChat === AI_CHATBOT_ID;
+
+  // Load AI messages from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(CHATBOT_STORAGE_KEY);
+    if (saved) {
+      try { 
+        const parsed = JSON.parse(saved);
+        setAiMessages(parsed.map((m: AiMessage) => ({ ...m, isAnimated: false }))); 
+      } catch (e) {}
+    }
+    setHasApiKey(!!localStorage.getItem('dx_chatbot_api_key'));
+  }, []);
+
+  // Save AI messages to localStorage whenever they change
+  useEffect(() => {
+    if (aiMessages.length > 0) {
+      localStorage.setItem(CHATBOT_STORAGE_KEY, JSON.stringify(aiMessages));
+    }
+  }, [aiMessages]);
+
   // 1. Fetch danh sách cuộc trò chuyện
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -69,7 +129,7 @@ const Messages = () => {
 
   // 2. Fetch tin nhắn khi chọn chat
   useEffect(() => {
-    if (selectedChat) {
+    if (selectedChat && !isAiChat) {
       const fetchMessages = async () => {
         try {
           const token = localStorage.getItem('token');
@@ -106,6 +166,15 @@ const Messages = () => {
       }
     }
   }, [selectedChat, conversations]);
+
+  // Scroll to bottom for AI chat
+  useEffect(() => {
+    if (isAiChat) {
+      setTimeout(() => {
+        aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [aiMessages, aiTyping]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -164,6 +233,88 @@ const Messages = () => {
       }
     } catch (error) {
       console.error("Error sending message:", error);
+    }
+  };
+
+  // AI Chatbot send message
+  const handleSendAiMessage = async () => {
+    if (!aiInput.trim()) return;
+
+    const apiKey = localStorage.getItem('dx_chatbot_api_key');
+    const model = localStorage.getItem('dx_chatbot_model') || 'gemini-2.0-flash';
+
+    if (!apiKey) {
+      showToast('Vui lòng cài đặt API key trong Cài đặt', 'error');
+      return;
+    }
+
+    const userMsg: AiMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: aiInput.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setAiMessages(prev => [...prev, userMsg]);
+    setAiInput('');
+    setAiTyping(true);
+
+    try {
+      // Build conversation history for context
+      const history = [...aiMessages, userMsg].slice(-20).map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
+
+      const systemInstruction = {
+        parts: [{
+          text: `Bạn là DX Chatbot - trợ lý AI thông minh và thân thiện. Bạn được tích hợp vào mạng xã hội DQuocVinh. Hãy trả lời bằng tiếng Việt khi người dùng nói tiếng Việt, và bằng tiếng Anh khi họ nói tiếng Anh. Luôn hữu ích, chính xác và lịch sự.`
+        }]
+      };
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: systemInstruction,
+            contents: history,
+            generationConfig: {
+              maxOutputTokens: 2048,
+              temperature: 0.8,
+            }
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error?.message || 'API error');
+      }
+
+      const data = await res.json();
+      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Xin lỗi, tôi không thể trả lời lúc này.';
+
+      const assistantMsg: AiMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: aiText,
+        timestamp: new Date().toISOString(),
+        isAnimated: true
+      };
+      setAiMessages(prev => [...prev, assistantMsg]);
+    } catch (error: any) {
+      console.error('AI chat error:', error);
+      const errMsg: AiMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `❌ Lỗi: ${error.message || 'Không thể kết nối AI. Vui lòng kiểm tra API key.'}`,
+        timestamp: new Date().toISOString()
+      };
+      setAiMessages(prev => [...prev, errMsg]);
+    } finally {
+      setAiTyping(false);
     }
   };
 
@@ -264,6 +415,42 @@ const Messages = () => {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
+
+            {/* ===== DX CHATBOT — Pinned at top ===== */}
+            <div
+              onClick={() => setSelectedChat(AI_CHATBOT_ID)}
+              className={`p-4 cursor-pointer transition-all hover:bg-white/5 border-b border-white/5 ${selectedChat === AI_CHATBOT_ID ? 'bg-purple-900/20 border-r-4 border-r-purple-500' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="relative flex-shrink-0">
+                  <img
+                    src="/avatar_chatbot.png"
+                    alt="DX Chatbot"
+                    className="w-11 h-11 rounded-full object-cover ring-2 ring-purple-500/40"
+                  />
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-purple-500 border-2 border-slate-900 rounded-full flex items-center justify-center">
+                    <Sparkles size={7} className="text-white" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline">
+                    <h3 className="font-bold text-white flex items-center gap-1.5">
+                      DX Chatbot
+                      <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-medium border border-purple-500/20">AI</span>
+                    </h3>
+                    <span className="text-[11px] text-gray-400">Luôn online</span>
+                  </div>
+                  <p className="text-xs truncate text-purple-400/80">
+                    {aiMessages.length > 0
+                      ? aiMessages[aiMessages.length - 1].content.substring(0, 40) + '...'
+                      : 'Trợ lý AI thông minh — hỏi bất cứ điều gì!'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+            {/* ===== End DX Chatbot ===== */}
+
             {conversations.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">Chưa có cuộc trò chuyện nào</div>
             ) : (
@@ -304,7 +491,214 @@ const Messages = () => {
                <h2 className="text-2xl font-bold text-white mb-2">Tin nhắn của bạn</h2>
                <p className="text-gray-400 max-w-xs mb-8">Chọn một cuộc trò chuyện hoặc bắt đầu cuộc trò chuyện mới.</p>
              </div>
+
+          ) : isAiChat ? (
+            /* ======== DX CHATBOT CHAT AREA ======== */
+            <>
+              {/* AI Chat Header */}
+              <div className="p-3 md:p-4 border-b border-white/5 flex justify-between items-center bg-slate-900 shadow-sm z-10">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setSelectedChat(null)} className="md:hidden p-2 -ml-2 text-gray-300"><ArrowLeft size={20} /></button>
+                  <button
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    className="hidden md:flex p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-white mr-1"
+                  >
+                    <ArrowLeft size={20} className={`transform transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img src="/avatar_chatbot.png" alt="DX Chatbot" className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500/50" />
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-purple-500 border-2 border-slate-900 rounded-full" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white flex items-center gap-2">
+                        DX Chatbot
+                        <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">Gemini AI</span>
+                      </h3>
+                      <p className="text-[11px] text-purple-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                        {aiTyping ? 'Đang soạn thảo...' : 'Luôn sẵn sàng'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => aiSettingsRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                    className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-purple-400"
+                    title="Cài đặt API key"
+                  >
+                    <SettingsIcon size={18} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Xóa toàn bộ lịch sử chat với DX Chatbot?')) {
+                        setAiMessages([]);
+                        localStorage.removeItem(CHATBOT_STORAGE_KEY);
+                      }
+                    }}
+                    className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-red-400"
+                    title="Xóa lịch sử"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* AI Messages List */}
+              <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 bg-gradient-to-b from-slate-950 to-slate-900 scroll-smooth">
+                {/* AI Settings Section */}
+                <div ref={aiSettingsRef} className="bg-slate-800/50 border border-white/5 rounded-2xl p-4 mb-6 scroll-mt-20">
+                  <h4 className="text-sm font-bold text-purple-400 mb-3 flex items-center gap-2">
+                    <SettingsIcon size={16} /> Cấu hình AI
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">Gemini API Key</label>
+                      <input 
+                        type="password" 
+                        defaultValue={localStorage.getItem('dx_chatbot_api_key') || ''}
+                        onChange={(e) => {
+                          localStorage.setItem('dx_chatbot_api_key', e.target.value);
+                          setHasApiKey(!!e.target.value);
+                        }}
+                        placeholder="Nhập API Key..." 
+                        className="w-full bg-slate-900 border border-white/10 text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">Model</label>
+                      <select 
+                        defaultValue={localStorage.getItem('dx_chatbot_model') || 'gemini-2.0-flash'}
+                        onChange={(e) => localStorage.setItem('dx_chatbot_model', e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors"
+                      >
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* No API key warning */}
+                {!hasApiKey && (
+                  <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-sm">
+                    <AlertCircle size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-amber-300 font-semibold">Chưa có API key</p>
+                      <p className="text-amber-400/80 text-xs mt-1">
+                        Vào{' '}
+                        <button onClick={() => navigate('/settings')} className="underline hover:text-amber-300">
+                          Cài đặt
+                        </button>
+                        {' '}để thêm Gemini API key và bắt đầu chat với DX Chatbot.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Welcome message if no chat history */}
+                {aiMessages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-20 h-20 mb-4 rounded-full overflow-hidden ring-4 ring-purple-500/20">
+                      <img src="/avatar_chatbot.png" alt="DX Chatbot" className="w-full h-full object-cover" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Xin chào! Tôi là DX Chatbot 👋</h3>
+                    <p className="text-gray-400 max-w-xs text-sm">
+                      Trợ lý AI được powered bởi Google Gemini. Hỏi tôi bất cứ điều gì!
+                    </p>
+                    <div className="mt-6 grid grid-cols-2 gap-2 max-w-xs w-full">
+                      {['Viết cho tôi một bài thơ', 'Giải thích AI là gì?', 'Code Python đơn giản', 'Ý tưởng bài đăng mạng xã hội'].map(suggestion => (
+                        <button
+                          key={suggestion}
+                          onClick={() => setAiInput(suggestion)}
+                          className="text-xs text-left p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-gray-300 transition-all"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Messages */}
+                {aiMessages.map(msg => (
+                  <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {msg.role === 'assistant' && (
+                      <img src="/avatar_chatbot.png" alt="DX Chatbot" className="w-8 h-8 rounded-full object-cover ring-1 ring-purple-500/30 flex-shrink-0 mb-1" />
+                    )}
+                    <div className={`max-w-[85%] md:max-w-[75%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                      <div className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed whitespace-pre-wrap break-words shadow-md ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-br-none'
+                          : 'bg-slate-800 text-gray-100 rounded-bl-none border border-white/5'
+                      }`}>
+                        {msg.isAnimated ? (
+                          <TypewriterText text={msg.content} onComplete={() => setAiMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnimated: false } : m))} />
+                        ) : (
+                          msg.content
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-500 mt-1 px-1">
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    {msg.role === 'user' && (
+                      <img
+                        src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=random`}
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10 mb-1 flex-shrink-0"
+                        alt="my avatar"
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {/* Typing indicator */}
+                {aiTyping && (
+                  <div className="flex items-end gap-3">
+                    <img src="/avatar_chatbot.png" alt="DX Chatbot" className="w-8 h-8 rounded-full object-cover ring-1 ring-purple-500/30 flex-shrink-0 mb-1" />
+                    <div className="px-5 py-4 bg-slate-800 border border-white/5 rounded-2xl rounded-bl-none shadow-md">
+                      <div className="flex gap-1.5 items-center">
+                        <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0 }} className="w-2 h-2 bg-purple-400 rounded-full" />
+                        <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} className="w-2 h-2 bg-purple-400 rounded-full" />
+                        <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }} className="w-2 h-2 bg-purple-400 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={aiMessagesEndRef} />
+              </div>
+
+              {/* AI Input Area */}
+              <div className="p-3 md:p-4 bg-slate-900 border-t border-white/5">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder={hasApiKey ? "Nhắn tin với DX Chatbot..." : "Cài đặt API key để bắt đầu chat..."}
+                    value={aiInput}
+                    onChange={e => setAiInput(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && !aiTyping && handleSendAiMessage()}
+                    disabled={!hasApiKey || aiTyping}
+                    className="flex-1 bg-white/5 border border-white/10 text-white text-sm rounded-full px-5 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder-gray-500 disabled:opacity-50"
+                  />
+                  <button
+                    className={`p-3 rounded-full text-white transition-all active:scale-95 ${
+                      !hasApiKey || aiTyping || !aiInput.trim()
+                        ? 'bg-slate-700 opacity-50 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-lg hover:shadow-purple-500/20'
+                    }`}
+                    onClick={handleSendAiMessage}
+                    disabled={!hasApiKey || aiTyping || !aiInput.trim()}
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+              </div>
+            </>
+
           ) : (
+          /* ======== NORMAL CHAT AREA ======== */
           <>
           {/* Chat Header */}
           <div className="p-3 md:p-4 border-b border-white/5 flex justify-between items-center bg-slate-900 shadow-sm z-10">

@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostDetail from '../pages/PostDetail';
+import { Editor } from '@tinymce/tinymce-react';
+import { formatDistanceToNow } from '../utils/dateUtils';
 
 interface Story {
   id: string;
@@ -17,6 +19,7 @@ interface Story {
   };
   media: string;
   type: 'image' | 'video';
+  createdAt?: string;
 }
 
 interface StoryDetailViewerProps {
@@ -409,7 +412,12 @@ const Feed = () => {
                 </div>
               )}
 
-              <span className="absolute bottom-2 left-2 right-2 text-[10px] font-bold text-white truncate">{story.user.name}</span>
+              <div className="absolute bottom-2 left-2 right-2">
+                <span className="text-[10px] font-bold text-white truncate block drop-shadow-md">{story.user.name}</span>
+                {story.createdAt && (
+                  <span className="text-[8px] text-gray-200 truncate block drop-shadow-md">{formatDistanceToNow(story.createdAt)}</span>
+                )}
+              </div>
             </motion.div>
           ))}
         </div>
@@ -424,23 +432,41 @@ const Feed = () => {
               className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-700"
             />
             <div className="flex-1">
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Bạn đang nghĩ gì?"
-                className="w-full bg-transparent text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-lg focus:outline-none resize-none min-h-[60px]"
-                rows={2}
-              />
+              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                <Editor
+                  apiKey="j9p84dix634f4p0x5mhl36c1z1a2xszic0xmykww7j89p2we"
+                  value={content}
+                  onEditorChange={(newContent) => setContent(newContent)}
+                  init={{
+                    height: 150,
+                    menubar: false,
+                    plugins: ['advlist', 'autolink', 'lists', 'link', 'charmap', 'preview', 'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen', 'insertdatetime', 'media', 'table', 'help', 'wordcount', 'emoticons'],
+                    toolbar: 'undo redo | blocks | ' +
+                      'bold italic forecolor emoticons | alignleft aligncenter ' +
+                      'alignright alignjustify | bullist numlist outdent indent | ' +
+                      'removeformat | help',
+                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px; background-color: transparent; }',
+                    placeholder: 'Bạn đang nghĩ gì?',
+                    skin: document.documentElement.classList.contains('dark') ? 'oxide-dark' : 'oxide',
+                    content_css: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+                    statusbar: false,
+                  }}
+                />
+              </div>
               {previewUrl && (
                 <div className="relative mt-2 mb-4 rounded-xl overflow-hidden group">
-                  <img src={previewUrl} alt="Preview" className="w-full max-h-[300px] object-cover rounded-xl border border-slate-150 dark:border-slate-700" />
+                  {(previewUrl.match(/\.(mp4|webm|ogg)$/i) || (selectedImage && selectedImage.type.startsWith('video/'))) ? (
+                    <video src={previewUrl} controls className="w-full max-h-[300px] object-contain rounded-xl bg-black" />
+                  ) : (
+                    <img src={previewUrl} alt="Preview" className="w-full max-h-[300px] object-cover rounded-xl border border-slate-150 dark:border-slate-700" />
+                  )}
                   <button onClick={removeImage} className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-colors">
                     <X size={16} />
                   </button>
                 </div>
               )}
               <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100 dark:border-slate-700/60">
-                <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
+                <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*,video/*" className="hidden" />
                 <button
                   onClick={() => user ? fileInputRef.current?.click() : handleAuthRequired()}
                   className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-3 py-2 rounded-lg transition-all duration-300 text-sm font-semibold active:scale-95"
