@@ -261,7 +261,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
           {/* TinyMCE Rich Text Editor */}
           <div className="rounded-2xl overflow-hidden border border-blue-200 dark:border-blue-900/50 shadow-sm">
             <Editor
-              tinymceScriptSrc="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js"
+              apiKey={import.meta.env.TINYMCE_API_KEY || import.meta.env.VITE_TINYMCE_API_KEY}
               onInit={(evt, editor) => { editorRef.current = editor; }}
               initialValue={post.content}
               init={{
@@ -271,16 +271,8 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
                 statusbar: false,
                 plugins: ['lists', 'link', 'emoticons', 'wordcount'],
                 toolbar: 'bold italic underline | bullist numlist | link emoticons | removeformat',
-                content_style: `
-                  body {
-                    font-family: ui-sans-serif, system-ui, sans-serif;
-                    font-size: 15px;
-                    line-height: 1.6;
-                    color: #1f2937;
-                    margin: 12px;
-                    background: transparent;
-                  }
-                `,
+                content_style: 'body { font-family: "Inter", Helvetica, Arial, sans-serif; font-size:16px; background-color: transparent !important; color: inherit; }',
+                placeholder: 'Viết nội dung bài đăng của bạn...',
                 skin: 'oxide',
                 content_css: 'default',
               }}

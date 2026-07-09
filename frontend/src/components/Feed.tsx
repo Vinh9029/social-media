@@ -414,8 +414,8 @@ const Feed = () => {
 
               <div className="absolute bottom-2 left-2 right-2">
                 <span className="text-[10px] font-bold text-white truncate block drop-shadow-md">{story.user.name}</span>
-                {story.createdAt && (
-                  <span className="text-[8px] text-gray-200 truncate block drop-shadow-md">{formatDistanceToNow(story.createdAt)}</span>
+                {story.timestamp && (
+                  <span className="text-[8px] text-gray-200 truncate block drop-shadow-md">{formatDistanceToNow(story.timestamp)}</span>
                 )}
               </div>
             </motion.div>
@@ -434,7 +434,7 @@ const Feed = () => {
             <div className="flex-1">
               <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
                 <Editor
-                  apiKey="j9p84dix634f4p0x5mhl36c1z1a2xszic0xmykww7j89p2we"
+                  apiKey={import.meta.env.TINYMCE_API_KEY || import.meta.env.VITE_TINYMCE_API_KEY}
                   value={content}
                   onEditorChange={(newContent) => setContent(newContent)}
                   init={{
@@ -445,10 +445,10 @@ const Feed = () => {
                       'bold italic forecolor emoticons | alignleft aligncenter ' +
                       'alignright alignjustify | bullist numlist outdent indent | ' +
                       'removeformat | help',
-                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px; background-color: transparent; }',
+                    content_style: 'body { font-family: "Inter", Helvetica, Arial, sans-serif; font-size:16px; background-color: transparent !important; color: inherit; }',
                     placeholder: 'Bạn đang nghĩ gì?',
-                    skin: document.documentElement.classList.contains('dark') ? 'oxide-dark' : 'oxide',
-                    content_css: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+                    skin: 'oxide',
+                    content_css: 'default',
                     statusbar: false,
                   }}
                 />
