@@ -19,6 +19,7 @@ interface Story {
   };
   media: string;
   type: 'image' | 'video';
+  timestamp?: string;
   createdAt?: string;
 }
 
