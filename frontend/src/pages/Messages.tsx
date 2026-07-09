@@ -12,7 +12,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
 const AI_CHATBOT_ID = 'dx-chatbot';
-const CHATBOT_STORAGE_KEY = 'dx_chatbot_messages';
 
 interface AiMessage {
   id: string;
@@ -86,22 +85,30 @@ const Messages = () => {
 
   // Load AI messages from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(CHATBOT_STORAGE_KEY);
+    if (!user) return;
+    const storageKey = `dx_chatbot_messages_${user.id || (user as any)._id}`;
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
         setAiMessages(parsed.map((m: AiMessage) => ({ ...m, isAnimated: false }))); 
       } catch (e) {}
+    } else {
+      setAiMessages([]);
     }
     setHasApiKey(!!localStorage.getItem('dx_chatbot_api_key'));
-  }, []);
+  }, [user]);
 
   // Save AI messages to localStorage whenever they change
   useEffect(() => {
+    if (!user) return;
+    const storageKey = `dx_chatbot_messages_${user.id || (user as any)._id}`;
     if (aiMessages.length > 0) {
-      localStorage.setItem(CHATBOT_STORAGE_KEY, JSON.stringify(aiMessages));
+      localStorage.setItem(storageKey, JSON.stringify(aiMessages));
+    } else {
+      localStorage.removeItem(storageKey);
     }
-  }, [aiMessages]);
+  }, [aiMessages, user]);
 
   // 1. Fetch danh sách cuộc trò chuyện
   useEffect(() => {
@@ -535,7 +542,6 @@ const Messages = () => {
                     onClick={() => {
                       if (window.confirm('Xóa toàn bộ lịch sử chat với DX Chatbot?')) {
                         setAiMessages([]);
-                        localStorage.removeItem(CHATBOT_STORAGE_KEY);
                       }
                     }}
                     className="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-red-400"
