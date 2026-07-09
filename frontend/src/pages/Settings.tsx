@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
-import { Settings as SettingsIcon, Moon, Sun, Shield, User, LogOut, Bot, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, Sun, Shield, User, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config';
 
@@ -14,25 +14,9 @@ const Settings = () => {
   const [displayName, setDisplayName] = useState('');
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
 
-  // AI Chatbot states
-  const [aiApiKey, setAiApiKey] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [aiModel, setAiModel] = useState('gemini-2.0-flash');
-  const [hasSavedKey, setHasSavedKey] = useState(false);
-
   useEffect(() => {
     if (user) setDisplayName(user.name || '');
   }, [user]);
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem('dx_chatbot_api_key');
-    const savedModel = localStorage.getItem('dx_chatbot_model');
-    if (savedKey) {
-      setHasSavedKey(true);
-      setAiApiKey(savedKey);
-    }
-    if (savedModel) setAiModel(savedModel);
-  }, []);
 
   const handleSaveProfile = async () => {
     try {
@@ -69,29 +53,6 @@ const Settings = () => {
     }
   };
 
-  const handleSaveAiSettings = () => {
-    if (!aiApiKey.trim()) {
-      showToast('Vui lòng nhập API key', 'error');
-      return;
-    }
-    localStorage.setItem('dx_chatbot_api_key', aiApiKey.trim());
-    localStorage.setItem('dx_chatbot_model', aiModel);
-    setHasSavedKey(true);
-    showToast('Đã lưu cài đặt AI Chatbot', 'success');
-  };
-
-  const handleClearAiKey = () => {
-    localStorage.removeItem('dx_chatbot_api_key');
-    localStorage.removeItem('dx_chatbot_model');
-    setAiApiKey('');
-    setHasSavedKey(false);
-    showToast('Đã xóa API key', 'success');
-  };
-
-  const maskApiKey = (key: string) => {
-    if (key.length <= 8) return '••••••••';
-    return key.substring(0, 4) + '••••••••••••' + key.substring(key.length - 4);
-  };
 
   if (!user) {
     return (
@@ -179,100 +140,6 @@ const Settings = () => {
                 className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Cập nhật mật khẩu
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Chatbot Settings */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 transition-colors">
-          <h2 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white flex items-center gap-2">
-            <Bot size={20} className="text-purple-500" /> DX Chatbot — Cài đặt AI
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Cung cấp API key để sử dụng DX Chatbot trong phần Tin nhắn. Key được lưu cục bộ trên trình duyệt.
-          </p>
-
-          {hasSavedKey && (
-            <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-lg">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-                API key đã được lưu: <span className="font-mono">{maskApiKey(aiApiKey)}</span>
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Model Selector */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Chọn mô hình AI
-              </label>
-              <div className="relative">
-                <select
-                  value={aiModel}
-                  onChange={e => setAiModel(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none appearance-none cursor-pointer transition-all pr-10"
-                >
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Nhanh, hiệu quả)</option>
-                  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Nhẹ hơn)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Mạnh nhất)</option>
-                </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* API Key Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Google Gemini API Key
-              </label>
-              <div className="relative">
-                <input
-                  type={showApiKey ? 'text' : 'password'}
-                  value={aiApiKey}
-                  onChange={e => setAiApiKey(e.target.value)}
-                  placeholder="AIza..."
-                  className="w-full px-4 py-2.5 pr-12 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none font-mono text-sm transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                >
-                  {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
-                Lấy API key miễn phí tại{' '}
-                <a 
-                  href="https://aistudio.google.com/app/apikey" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-purple-500 hover:underline"
-                >
-                  Google AI Studio
-                </a>
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 justify-end pt-1">
-              {hasSavedKey && (
-                <button
-                  onClick={handleClearAiKey}
-                  className="px-4 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
-                >
-                  Xóa key
-                </button>
-              )}
-              <button
-                onClick={handleSaveAiSettings}
-                disabled={!aiApiKey.trim()}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-              >
-                <Bot size={16} />
-                Lưu cài đặt AI
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Image, Send, X, Loader2, LogIn, Plus, PlusCircle, Video, Database } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Image, Send, X, Loader2, LogIn, Plus, PlusCircle, Video, Database, Bold, Italic, Underline, List, Link2, Github, Facebook, ExternalLink } from 'lucide-react';
 import PostCard from './PostCard';
 import { Post } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostDetail from '../pages/PostDetail';
-import { Editor } from '@tinymce/tinymce-react';
 import { formatDistanceToNow } from '../utils/dateUtils';
 
 interface Story {
@@ -119,6 +118,126 @@ const StoryDetailViewer: React.FC<StoryDetailViewerProps> = ({ stories, activeIn
   );
 };
 
+// Simple rich-text toolbar (no paid API required)
+const RichTextEditor = ({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) => {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  const execCommand = useCallback((cmd: string, val?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(cmd, false, val);
+    // sync content
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  }, [onChange]);
+
+  const handleInput = () => {
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  };
+
+  // sync external clear
+  useEffect(() => {
+    if (!value && editorRef.current && editorRef.current.innerHTML !== '') {
+      editorRef.current.innerHTML = '';
+    }
+  }, [value]);
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      {/* Toolbar */}
+      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+        {[
+          { icon: <Bold size={14} />, cmd: 'bold', title: 'Bold' },
+          { icon: <Italic size={14} />, cmd: 'italic', title: 'Italic' },
+          { icon: <Underline size={14} />, cmd: 'underline', title: 'Gạch chân' },
+          { icon: <List size={14} />, cmd: 'insertUnorderedList', title: 'Danh sách' },
+        ].map(btn => (
+          <button
+            key={btn.cmd}
+            type="button"
+            title={btn.title}
+            onMouseDown={(e) => { e.preventDefault(); execCommand(btn.cmd); }}
+            className="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition-colors"
+          >
+            {btn.icon}
+          </button>
+        ))}
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
+        <button
+          type="button"
+          title="Chèn link"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const url = window.prompt('Nhập URL:');
+            if (url) execCommand('createLink', url);
+          }}
+          className="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition-colors"
+        >
+          <Link2 size={14} />
+        </button>
+      </div>
+      {/* Content editable area */}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        data-placeholder={placeholder || 'Bạn đang nghĩ gì?'}
+        className="min-h-[100px] max-h-[200px] overflow-y-auto px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-slate-400 dark:[&:empty]:before:text-slate-500 [&:empty]:before:pointer-events-none leading-relaxed"
+      />
+    </div>
+  );
+};
+
+// Footer component
+const FeedFooter = () => (
+  <footer className="mt-10 mb-6 flex flex-col items-center gap-4 text-slate-400 dark:text-slate-500 text-xs">
+    <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent" />
+    <a
+      href="https://my-portfolio-nine-sand-28.vercel.app/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col items-center gap-1.5 hover:opacity-90 transition-opacity"
+    >
+      <div className="relative">
+        <img
+          src="/avatar_chatbot.png"
+          alt="DQuocVinh Portfolio"
+          className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700 group-hover:ring-blue-400 transition-all duration-300 shadow-md"
+        />
+        <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1 shadow">
+          <ExternalLink size={10} className="text-white" />
+        </div>
+      </div>
+      <span className="font-semibold text-slate-600 dark:text-slate-300 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors text-[13px]">DQuocVinh</span>
+    </a>
+
+    <div className="flex items-center gap-5">
+      <a
+        href="https://github.com/vinh9029"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group"
+      >
+        <Github size={16} className="group-hover:scale-110 transition-transform" />
+        <span>vinh9029</span>
+      </a>
+      <span className="text-slate-300 dark:text-slate-600">·</span>
+      <a
+        href="https://www.facebook.com/8129029sng"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 hover:text-blue-500 transition-colors group"
+      >
+        <Facebook size={16} className="group-hover:scale-110 transition-transform" />
+        <span>8129029sng</span>
+      </a>
+    </div>
+
+    <p className="text-center text-slate-400 dark:text-slate-600 text-[11px] leading-relaxed">
+      © {new Date().getFullYear()} DQuocVinh. Bản quyền thuộc về tác giả.
+    </p>
+  </footer>
+);
+
 const Feed = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -208,7 +327,9 @@ const Feed = () => {
 
   const handlePostSubmit = async () => {
     if (!user) return handleAuthRequired();
-    if (!content.trim() && !selectedImage) return;
+    // strip html tags for check
+    const plainText = content.replace(/<[^>]+>/g, '').trim();
+    if (!plainText && !selectedImage) return;
 
     setIsPosting(true);
     try {
@@ -286,7 +407,6 @@ const Feed = () => {
       let mediaUrl = storyPreviewUrl || '';
       const token = localStorage.getItem('token');
 
-      // Tải tệp lên backend
       const formData = new FormData();
       formData.append('image', storyFile);
       const uploadRes = await fetch(`${API_URL}/api/upload/post`, {
@@ -298,7 +418,6 @@ const Feed = () => {
       const uploadData = await uploadRes.json();
       mediaUrl = uploadData.url;
 
-      // Lưu câu chuyện vào database
       const storyRes = await fetch(`${API_URL}/api/stories`, {
         method: 'POST',
         headers: {
@@ -351,6 +470,8 @@ const Feed = () => {
   const handleDeletePost = (postId: string) => {
     setPosts(prev => prev.filter(p => p.id !== postId));
   };
+
+  const plainContent = content.replace(/<[^>]+>/g, '').trim();
 
   return (
     <div className="max-w-2xl mx-auto w-full py-6 px-4">
@@ -415,8 +536,10 @@ const Feed = () => {
 
               <div className="absolute bottom-2 left-2 right-2">
                 <span className="text-[10px] font-bold text-white truncate block drop-shadow-md">{story.user.name}</span>
-                {story.timestamp && (
-                  <span className="text-[8px] text-gray-200 truncate block drop-shadow-md">{formatDistanceToNow(story.timestamp)}</span>
+                {(story.timestamp || story.createdAt) && (
+                  <span className="text-[8px] text-gray-200 truncate block drop-shadow-md">
+                    {formatDistanceToNow(story.timestamp || story.createdAt || '')}
+                  </span>
                 )}
               </div>
             </motion.div>
@@ -430,32 +553,16 @@ const Feed = () => {
             <img
               src={user?.avatar || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&auto=format&fit=crop&q=60"}
               alt={user?.name || "User"}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-700"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-700 flex-shrink-0"
             />
-            <div className="flex-1">
-              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                <Editor
-                  apiKey={import.meta.env.TINYMCE_API_KEY || import.meta.env.VITE_TINYMCE_API_KEY}
-                  value={content}
-                  onEditorChange={(newContent) => setContent(newContent)}
-                  init={{
-                    height: 150,
-                    menubar: false,
-                    plugins: ['advlist', 'autolink', 'lists', 'link', 'charmap', 'preview', 'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen', 'insertdatetime', 'media', 'table', 'help', 'wordcount', 'emoticons'],
-                    toolbar: 'undo redo | blocks | ' +
-                      'bold italic forecolor emoticons | alignleft aligncenter ' +
-                      'alignright alignjustify | bullist numlist outdent indent | ' +
-                      'removeformat | help',
-                    content_style: 'body { font-family: "Inter", Helvetica, Arial, sans-serif; font-size:16px; background-color: transparent !important; color: inherit; }',
-                    placeholder: 'Bạn đang nghĩ gì?',
-                    skin: 'oxide',
-                    content_css: 'default',
-                    statusbar: false,
-                  }}
-                />
-              </div>
+            <div className="flex-1 min-w-0">
+              <RichTextEditor
+                value={content}
+                onChange={setContent}
+                placeholder="Bạn đang nghĩ gì?"
+              />
               {previewUrl && (
-                <div className="relative mt-2 mb-4 rounded-xl overflow-hidden group">
+                <div className="relative mt-2 mb-2 rounded-xl overflow-hidden group">
                   {(previewUrl.match(/\.(mp4|webm|ogg)$/i) || (selectedImage && selectedImage.type.startsWith('video/'))) ? (
                     <video src={previewUrl} controls className="w-full max-h-[300px] object-contain rounded-xl bg-black" />
                   ) : (
@@ -466,7 +573,7 @@ const Feed = () => {
                   </button>
                 </div>
               )}
-              <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100 dark:border-slate-700/60">
+              <div className="flex justify-between items-center mt-2 pt-2.5 border-t border-slate-100 dark:border-slate-700/60">
                 <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*,video/*" className="hidden" />
                 <button
                   onClick={() => user ? fileInputRef.current?.click() : handleAuthRequired()}
@@ -477,7 +584,7 @@ const Feed = () => {
                 </button>
                 <button
                   onClick={handlePostSubmit}
-                  disabled={(!content.trim() && !selectedImage) || isPosting}
+                  disabled={(!plainContent && !selectedImage) || isPosting}
                   className="bg-gradient-to-r from-blue-600 to-indigo-500 text-white px-6 py-2 rounded-xl font-semibold hover:opacity-95 transition-all shadow-md shadow-blue-500/20 flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isPosting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
@@ -565,6 +672,8 @@ const Feed = () => {
           <div className="text-center py-10 text-gray-500">Chưa có bài viết nào.</div>
         )}
       </div>
+
+      <FeedFooter />
 
       <AnimatePresence>
         {showStoryModal && (

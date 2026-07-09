@@ -9,7 +9,6 @@ import { formatDistanceToNow } from '../utils/dateUtils';
 import ReactionBar from './ReactionBar';
 import MediaCarousel from './MediaCarousel';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Editor } from '@tinymce/tinymce-react';
 
 interface PostCardProps {
   post: Post;
@@ -35,7 +34,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const menuRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<any>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
   
   // Saved State
   const [isSaved, setIsSaved] = useState(false);
@@ -85,7 +84,7 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
   };
 
   const handleUpdatePost = async () => {
-    const content = editorRef.current ? editorRef.current.getContent() : editContent;
+    const content = editContent;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/api/posts/${post.id}`, {
@@ -258,24 +257,15 @@ const PostCard: React.FC<PostCardProps> = ({ post: initialPost, onDelete, onPost
           onClick={e => e.stopPropagation()} 
           className="mb-4"
         >
-          {/* TinyMCE Rich Text Editor */}
+          {/* Native rich text editor for editing */}
           <div className="rounded-2xl overflow-hidden border border-blue-200 dark:border-blue-900/50 shadow-sm">
-            <Editor
-              apiKey={import.meta.env.TINYMCE_API_KEY || import.meta.env.VITE_TINYMCE_API_KEY}
-              onInit={(evt, editor) => { editorRef.current = editor; }}
-              initialValue={post.content}
-              init={{
-                height: 200,
-                menubar: false,
-                branding: false,
-                statusbar: false,
-                plugins: ['lists', 'link', 'emoticons', 'wordcount'],
-                toolbar: 'bold italic underline | bullist numlist | link emoticons | removeformat',
-                content_style: 'body { font-family: "Inter", Helvetica, Arial, sans-serif; font-size:16px; background-color: transparent !important; color: inherit; }',
-                placeholder: 'Viết nội dung bài đăng của bạn...',
-                skin: 'oxide',
-                content_css: 'default',
-              }}
+            <textarea
+              ref={editRef}
+              value={editContent.replace(/<[^>]+>/g, '')}
+              onChange={e => setEditContent(e.target.value)}
+              rows={5}
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm leading-relaxed resize-none focus:outline-none"
+              placeholder="Viết nội dung bài đăng của bạn..."
             />
           </div>
           <div className="flex justify-end gap-3 mt-3">
