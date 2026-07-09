@@ -1,6 +1,5 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { API_URL } from './config';
 import { AuthProvider } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
 import Rightbar from './components/Rightbar';
@@ -22,8 +21,7 @@ import ChatWidget from './components/ChatWidget';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { MessagesProvider } from './contexts/MessagesContext';
-
-
+import { API_URL } from './config';
 
 const GlobalBlocker = ({ children }: { children: React.ReactNode }) => {
   const { user, signOut } = useAuth();
@@ -93,11 +91,7 @@ const MainLayout = () => {
     }
   }, [location]);
 
-  React.useEffect(() => {
-    if (user && user.role === 'admin' && location.pathname !== '/admin') {
-      navigate('/admin');
-    }
-  }, [user, location.pathname, navigate]);
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex justify-center transition-colors duration-200">

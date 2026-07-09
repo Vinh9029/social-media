@@ -26,11 +26,12 @@ const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () =>
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
+    const chars = Array.from(text);
     let i = 0;
     const interval = setInterval(() => {
-      setDisplayedText(text.substring(0, i));
-      i += 2;
-      if (i > text.length) {
+      setDisplayedText(chars.slice(0, i).join(''));
+      i += 1;
+      if (i > chars.length) {
         clearInterval(interval);
         setDisplayedText(text);
         if (onComplete) onComplete();
@@ -398,20 +399,20 @@ const Messages = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] md:h-screen w-full bg-slate-900 flex transition-colors overflow-hidden text-white">
+    <div className="h-[calc(100vh-64px)] md:h-screen w-full bg-white dark:bg-slate-900 flex transition-colors overflow-hidden text-slate-900 dark:text-white">
         
         {/* Sidebar List */}
-        <div className={`${isSidebarCollapsed ? 'hidden' : selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] border-r border-white/5 flex-col bg-slate-900`}>
-          <div className="p-4 border-b border-white/5">
-            <h2 className="text-xl font-bold text-white mb-4">Tin nhắn</h2>
+        <div className={`${isSidebarCollapsed ? 'hidden' : selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] border-r border-slate-200 dark:border-white/5 flex-col bg-white dark:bg-slate-900`}>
+          <div className="p-4 border-b border-slate-200 dark:border-white/5">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Tin nhắn</h2>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
                 type="text" 
                 placeholder="Tìm kiếm..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 text-white rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -434,13 +435,13 @@ const Messages = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <h3 className="font-bold text-white flex items-center gap-1.5">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                       DX Chatbot
-                      <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-medium border border-purple-500/20">AI</span>
+                      <span className="text-[10px] bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 px-1.5 py-0.5 rounded-full font-medium border border-purple-200 dark:border-purple-500/20">AI</span>
                     </h3>
-                    <span className="text-[11px] text-gray-400">Luôn online</span>
+                    <span className="text-[11px] text-slate-500 dark:text-gray-400">Luôn online</span>
                   </div>
-                  <p className="text-xs truncate text-purple-400/80">
+                  <p className="text-xs truncate text-purple-600 dark:text-purple-400/80">
                     {aiMessages.length > 0
                       ? aiMessages[aiMessages.length - 1].content.substring(0, 40) + '...'
                       : 'Trợ lý AI thông minh — hỏi bất cứ điều gì!'
@@ -482,26 +483,26 @@ const Messages = () => {
         </div>
 
         {/* Chat Area */}
-        <div className={`${!selectedChat ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-slate-950`}>
+        <div className={`${!selectedChat ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-slate-50 dark:bg-slate-950`}>
           {!selectedChat ? (
              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-               <div className="w-24 h-24 bg-purple-500/10 rounded-full flex items-center justify-center mb-6">
-                 <Mail className="w-10 h-10 text-purple-500" />
+               <div className="w-24 h-24 bg-purple-100 dark:bg-purple-500/10 rounded-full flex items-center justify-center mb-6">
+                 <Mail className="w-10 h-10 text-purple-600 dark:text-purple-500" />
                </div>
-               <h2 className="text-2xl font-bold text-white mb-2">Tin nhắn của bạn</h2>
-               <p className="text-gray-400 max-w-xs mb-8">Chọn một cuộc trò chuyện hoặc bắt đầu cuộc trò chuyện mới.</p>
+               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Tin nhắn của bạn</h2>
+               <p className="text-slate-500 dark:text-gray-400 max-w-xs mb-8">Chọn một cuộc trò chuyện hoặc bắt đầu cuộc trò chuyện mới.</p>
              </div>
 
           ) : isAiChat ? (
             /* ======== DX CHATBOT CHAT AREA ======== */
             <>
               {/* AI Chat Header */}
-              <div className="p-3 md:p-4 border-b border-white/5 flex justify-between items-center bg-slate-900 shadow-sm z-10">
+              <div className="p-3 md:p-4 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-white dark:bg-slate-900 shadow-sm z-10">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setSelectedChat(null)} className="md:hidden p-2 -ml-2 text-gray-300"><ArrowLeft size={20} /></button>
+                  <button onClick={() => setSelectedChat(null)} className="md:hidden p-2 -ml-2 text-slate-500 dark:text-gray-300"><ArrowLeft size={20} /></button>
                   <button
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className="hidden md:flex p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-white mr-1"
+                    className="hidden md:flex p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white mr-1"
                   >
                     <ArrowLeft size={20} className={`transform transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
                   </button>
@@ -511,11 +512,11 @@ const Messages = () => {
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-purple-500 border-2 border-slate-900 rounded-full" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white flex items-center gap-2">
+                      <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         DX Chatbot
-                        <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">Gemini AI</span>
+                        <span className="text-[10px] bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-500/20">Gemini AI</span>
                       </h3>
-                      <p className="text-[11px] text-purple-400 flex items-center gap-1">
+                      <p className="text-[11px] text-purple-600 dark:text-purple-400 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
                         {aiTyping ? 'Đang soạn thảo...' : 'Luôn sẵn sàng'}
                       </p>
@@ -546,7 +547,7 @@ const Messages = () => {
               </div>
 
               {/* AI Messages List */}
-              <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 bg-gradient-to-b from-slate-950 to-slate-900 scroll-smooth">
+              <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 bg-slate-50 dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 scroll-smooth">
                 <AnimatePresence>
                   {showAiSettings && (
                     <motion.div
@@ -658,7 +659,7 @@ const Messages = () => {
                       <div className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed whitespace-pre-wrap break-words shadow-md ${
                         msg.role === 'user'
                           ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-br-none'
-                          : 'bg-slate-800 text-gray-100 rounded-bl-none border border-white/5'
+                          : 'bg-white text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-gray-100 rounded-bl-none border dark:border-white/5'
                       }`}>
                         {msg.isAnimated ? (
                           <TypewriterText text={msg.content} onComplete={() => setAiMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnimated: false } : m))} />
@@ -684,7 +685,7 @@ const Messages = () => {
                 {aiTyping && (
                   <div className="flex items-end gap-3">
                     <img src="/avatar_chatbot.png" alt="DX Chatbot" className="w-8 h-8 rounded-full object-cover ring-1 ring-purple-500/30 flex-shrink-0 mb-1" />
-                    <div className="px-5 py-4 bg-slate-800 border border-white/5 rounded-2xl rounded-bl-none shadow-md">
+                    <div className="px-5 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 rounded-2xl rounded-bl-none shadow-md">
                       <div className="flex gap-1.5 items-center">
                         <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0 }} className="w-2 h-2 bg-purple-400 rounded-full" />
                         <motion.span animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} className="w-2 h-2 bg-purple-400 rounded-full" />
@@ -698,7 +699,7 @@ const Messages = () => {
               </div>
 
               {/* AI Input Area */}
-              <div className="p-3 md:p-4 bg-slate-900 border-t border-white/5">
+              <div className="p-3 md:p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-white/5">
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -707,7 +708,7 @@ const Messages = () => {
                     onChange={e => setAiInput(e.target.value)}
                     onKeyPress={e => e.key === 'Enter' && !aiTyping && handleSendAiMessage()}
                     disabled={!hasApiKey || aiTyping}
-                    className="flex-1 bg-white/5 border border-white/10 text-white text-sm rounded-full px-5 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder-gray-500 disabled:opacity-50"
+                    className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-sm rounded-full px-5 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder-slate-500 disabled:opacity-50"
                   />
                   <button
                     className={`p-3 rounded-full text-white transition-all active:scale-95 ${

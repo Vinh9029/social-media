@@ -1,39 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { Shield, Users, FileText, MessageSquare, Trash2, User, Activity, TrendingUp, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Shield, Users, FileText, MessageSquare, Trash2, User, Activity, TrendingUp, AlertTriangle, ArrowLeft, Ban, Unlock, LogOut } from 'lucide-react';
 import { User as UserType, Post, Comment } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Link } from 'react-router-dom';
-
-// Mock Data
-const MOCK_USERS: UserType[] = [
-  { id: 'u1', name: 'Quốc Vinh Admin', username: 'vinh9029', avatar: '/avatar_chatbot.png', role: 'admin', bio: 'Người sáng lập và quản lý hệ thống.' },
-  { id: 'u2', name: 'Minh Thư', username: 'minhthu', avatar: '', role: 'user', bio: 'Thích lập trình và kết bạn.' },
-  { id: 'u3', name: 'Anh Tuấn', username: 'anhtuan', avatar: '', role: 'user', bio: 'Developer tại Hà Nội.' },
-  { id: 'u4', name: 'Thảo Vy', username: 'thaovy', avatar: '', role: 'user', bio: 'Design is my passion.' },
-];
-
-const MOCK_POSTS: Post[] = [
-  { id: 'p1', author: MOCK_USERS[1], content: 'Chào mọi người, mạng xã hội này xịn quá! Chúc cộng đồng phát triển mạnh mẽ nha 🎉', likes: 12, comments: 2, shares: 1, timestamp: '2026-07-09T08:00:00Z', title: 'Xin chào cộng đồng' },
-  { id: 'p2', author: MOCK_USERS[2], content: 'Có ai biết cách cấu hình Gemini API Key vào Chatbot không? Bản mới mượt mà quá!', likes: 8, comments: 4, shares: 0, timestamp: '2026-07-09T08:15:00Z', title: 'Hỏi về Chatbot' },
-];
-
-const MOCK_COMMENTS: Comment[] = [
-  { id: 'c1', content: 'Cảm ơn bạn đã ủng hộ nhé!', author: MOCK_USERS[0], timestamp: '2026-07-09T08:05:00Z', postId: 'p1', postTitle: 'Xin chào cộng đồng' },
-  { id: 'c2', content: 'Chỉ cần click nút Setting ⚙️ ở góc chat rồi điền key là chạy ngay nha bạn.', author: MOCK_USERS[0], timestamp: '2026-07-09T08:20:00Z', postId: 'p2', postTitle: 'Hỏi về Chatbot' },
-];
-
-const chartData = [
-  { name: 'T2', users: 12, posts: 8 },
-  { name: 'T3', users: 19, posts: 15 },
-  { name: 'T4', users: 32, posts: 24 },
-  { name: 'T5', users: 45, posts: 31 },
-  { name: 'T6', users: 58, posts: 42 },
-  { name: 'T7', users: 84, posts: 65 },
-  { name: 'CN', users: 112, posts: 89 },
-];
+import { Link, useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const colorStyles: Record<string, { active: string; inactiveIcon: string; border: string; glow: string }> = {
   blue: {
@@ -63,15 +36,52 @@ const colorStyles: Record<string, { active: string; inactiveIcon: string; border
 };
 
 export default function Admin() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'posts' | 'comments'>('overview');
-  const [users, setUsers] = useState<UserType[]>(MOCK_USERS);
-  const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
-  const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
+  
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0 });
+  const [chartData, setChartData] = useState([{ name: 'Hiện tại', users: 0, posts: 0 }]);
 
   // Custom confirmation modal state
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'post' | 'comment' | 'user' } | null>(null);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token || '' };
+
+        const [statsRes, usersRes, postsRes, commentsRes] = await Promise.all([
+          fetch(`${API_URL}/api/admin/stats`, { headers }),
+          fetch(`${API_URL}/api/admin/users`, { headers }),
+          fetch(`${API_URL}/api/admin/posts`, { headers }),
+          fetch(`${API_URL}/api/admin/comments`, { headers })
+        ]);
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+          setChartData([
+            { name: 'Tháng trước', users: Math.floor(statsData.users * 0.7), posts: Math.floor(statsData.posts * 0.6) },
+            { name: 'Hiện tại', users: statsData.users, posts: statsData.posts }
+          ]);
+        }
+        if (usersRes.ok) setUsers(await usersRes.json());
+        if (postsRes.ok) setPosts(await postsRes.json());
+        if (commentsRes.ok) setComments(await commentsRes.json());
+      } catch (e) {
+        console.error('Failed to fetch admin data', e);
+      }
+    };
+    fetchData();
+  }, [user]);
 
   // If not admin, display denied notice
   if (user?.role !== 'admin') {
@@ -101,15 +111,57 @@ export default function Admin() {
     setDeleteTarget({ id, type });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
     const { id, type } = deleteTarget;
-    if (type === 'post') setPosts(posts.filter(p => p.id !== id));
-    else if (type === 'comment') setComments(comments.filter(c => c.id !== id));
-    else if (type === 'user') setUsers(users.filter(u => u.id !== id));
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/${type}s/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token || '' }
+      });
+      
+      if (res.ok) {
+        if (type === 'post') setPosts(posts.filter(p => p.id !== id));
+        else if (type === 'comment') setComments(comments.filter(c => c.id !== id));
+        else if (type === 'user') setUsers(users.filter(u => u.id !== id));
+        
+        showToast(`Đã xóa ${type === 'post' ? 'bài viết' : type === 'comment' ? 'bình luận' : 'người dùng'} thành công!`, 'success');
+      } else {
+        const data = await res.json();
+        showToast(data.message || 'Có lỗi xảy ra', 'error');
+      }
+    } catch (e) {
+      showToast('Lỗi kết nối máy chủ', 'error');
+    }
     
     setDeleteTarget(null);
-    showToast(`Đã xóa ${type === 'post' ? 'bài viết' : type === 'comment' ? 'bình luận' : 'người dùng'} thành công!`, 'success');
+  };
+
+  const handleToggleUserStatus = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/status`, {
+        method: 'PUT',
+        headers: { 'x-auth-token': token || '' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(users.map(u => u.id === userId ? { ...u, status: data.status } : u));
+        showToast(`Đã ${data.status === 'deactivated' ? 'khóa' : 'mở khóa'} tài khoản`, 'success');
+      } else {
+        const errData = await res.json();
+        showToast(errData.message || 'Lỗi', 'error');
+      }
+    } catch (e) {
+      showToast('Lỗi kết nối máy chủ', 'error');
+    }
+  };
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/login');
   };
 
   const containerVariants = {
@@ -123,8 +175,8 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors py-8 px-4 w-full">
+      <div className="max-w-6xl mx-auto w-full">
         
         {/* Dashboard Header */}
         <motion.div 
@@ -141,21 +193,29 @@ export default function Admin() {
               <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">Quản lý và theo dõi thông số mạng xã hội</p>
             </div>
           </div>
-          <Link 
-            to="/" 
-            className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0"
-          >
-            <ArrowLeft size={14} /> Quay về mạng xã hội
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link 
+              to="/" 
+              className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+            >
+              <ArrowLeft size={14} /> Quay về Trang chủ
+            </Link>
+            <button 
+              onClick={handleLogout}
+              className="inline-flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+            >
+              <LogOut size={14} /> Đăng xuất
+            </button>
+          </div>
         </motion.div>
 
         {/* Quick Stats Grid / Nav */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             { id: 'overview', icon: Activity, label: 'Tổng quan', color: 'blue' },
-            { id: 'users', icon: Users, label: 'Người dùng', count: users.length, color: 'indigo' },
-            { id: 'posts', icon: FileText, label: 'Bài viết', count: posts.length, color: 'emerald' },
-            { id: 'comments', icon: MessageSquare, label: 'Bình luận', count: comments.length, color: 'rose' }
+            { id: 'users', icon: Users, label: 'Người dùng', count: stats.users, color: 'indigo' },
+            { id: 'posts', icon: FileText, label: 'Bài viết', count: stats.posts, color: 'emerald' },
+            { id: 'comments', icon: MessageSquare, label: 'Bình luận', count: stats.comments, color: 'rose' }
           ].map((tab) => {
             const styles = colorStyles[tab.color];
             const isSelected = activeTab === tab.id;
@@ -246,13 +306,13 @@ export default function Admin() {
                     <tr className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
                       <th className="p-4 font-extrabold">Thành viên</th>
                       <th className="p-4 font-extrabold">Tiểu sử</th>
-                      <th className="p-4 font-extrabold">Quyền hạn</th>
+                      <th className="p-4 font-extrabold">Trạng thái/Quyền</th>
                       <th className="p-4 font-extrabold text-right">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.map((u) => (
-                      <motion.tr variants={itemVariants} key={u.id} className="border-b border-slate-50 dark:border-slate-800/40 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                      <motion.tr variants={itemVariants} key={u.id} className={`border-b border-slate-50 dark:border-slate-800/40 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors ${u.status === 'deactivated' ? 'opacity-60' : ''}`}>
                         <td className="p-4">
                           <div className="flex items-center space-x-3">
                             <img
@@ -270,11 +330,25 @@ export default function Admin() {
                           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{u.bio || 'Chưa cập nhật tiểu sử'}</p>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
-                            {u.role || 'user'}
-                          </span>
+                          <div className="flex gap-2">
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                              {u.role || 'user'}
+                            </span>
+                            {u.status === 'deactivated' && (
+                              <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400">
+                                Bị khóa
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="p-4 text-right">
+                        <td className="p-4 text-right flex justify-end gap-2">
+                          <button 
+                            onClick={() => handleToggleUserStatus(u.id)} 
+                            className={`p-2 rounded-xl transition-all ${u.status === 'deactivated' ? 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/20' : 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20'}`}
+                            title={u.status === 'deactivated' ? 'Mở khóa' : 'Khóa tài khoản'}
+                          >
+                            {u.status === 'deactivated' ? <Unlock size={16} /> : <Ban size={16} />}
+                          </button>
                           <button 
                             onClick={() => handleDeleteClick(u.id, 'user')} 
                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all"
@@ -330,38 +404,42 @@ export default function Admin() {
 
             {activeTab === 'comments' && (
               <motion.div variants={containerVariants} initial="hidden" animate="visible" className="p-6 grid gap-4 max-h-[600px] overflow-y-auto custom-scrollbar">
-                {comments.map((comment) => (
-                  <motion.div 
-                    variants={itemVariants} 
-                    key={comment.id} 
-                    className="flex items-start justify-between p-5 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-rose-500/30 dark:hover:border-rose-500/20 transition-all bg-slate-50/30 dark:bg-slate-900/10"
-                  >
-                    <div className="flex-1 min-w-0 pr-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <img 
-                          src={comment.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=random`} 
-                          alt="" 
-                          className="w-5 h-5 rounded-full object-cover"
-                        />
-                        <span className="font-bold text-xs text-slate-700 dark:text-slate-300">{comment.author.name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">@{comment.author.username}</span>
-                      </div>
-                      <p className="text-slate-800 dark:text-slate-200 text-xs md:text-sm font-medium mb-2 break-words bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl italic">
-                        "{comment.content}"
-                      </p>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                        Bình luận trên bài viết: <span className="font-bold text-slate-500 dark:text-slate-400">"{comment.postTitle}"</span>
-                      </p>
-                    </div>
-                    <button 
-                      onClick={() => handleDeleteClick(comment.id, 'comment')} 
-                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-colors ml-4 shrink-0"
-                      title="Xóa bình luận"
+                {comments.length === 0 ? (
+                  <div className="text-center text-slate-500 py-10">Không có bình luận nào</div>
+                ) : (
+                  comments.map((comment) => (
+                    <motion.div 
+                      variants={itemVariants} 
+                      key={comment.id} 
+                      className="flex items-start justify-between p-5 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-rose-500/30 dark:hover:border-rose-500/20 transition-all bg-slate-50/30 dark:bg-slate-900/10"
                     >
-                      <Trash2 size={16} />
-                    </button>
-                  </motion.div>
-                ))}
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <img 
+                            src={comment.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=random`} 
+                            alt="" 
+                            className="w-5 h-5 rounded-full object-cover"
+                          />
+                          <span className="font-bold text-xs text-slate-700 dark:text-slate-300">{comment.author.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">@{comment.author.username}</span>
+                        </div>
+                        <p className="text-slate-800 dark:text-slate-200 text-xs md:text-sm font-medium mb-2 break-words bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl italic">
+                          "{comment.content}"
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                          Bình luận trên bài viết: <span className="font-bold text-slate-500 dark:text-slate-400">"{comment.postTitle}"</span>
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteClick(comment.id, 'comment')} 
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-colors ml-4 shrink-0"
+                        title="Xóa bình luận"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </motion.div>
+                  ))
+                )}
               </motion.div>
             )}
           </motion.div>
@@ -371,7 +449,7 @@ export default function Admin() {
       {/* Confirmation Modal */}
       <AnimatePresence>
         {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" onClick={() => setDeleteTarget(null)}>
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" onClick={() => setDeleteTarget(null)}>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
